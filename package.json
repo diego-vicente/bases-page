@@ -66,6 +66,8 @@
   },
   "dependencies": {
     "@quartz-community/types": "github:quartz-community/types",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3",
     "vfile": "^6.0.3",
     "yaml": "^2.8.1"
   },
@@ -79,8 +81,6 @@
     "eslint-config-prettier": "^9.1.0",
     "preact": "^10.28.2",
     "prettier": "^3.6.2",
-    "tsup": "^8.5.0",
-    "typescript": "^5.9.3",
     "vitest": "^2.1.9"
   },
   "quartz": {
