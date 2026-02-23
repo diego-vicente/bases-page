@@ -1,3 +1,5 @@
+import type { ComponentChild } from "preact";
+
 // Re-export needed types from @quartz-community/types
 export type {
   BuildCtx,
@@ -22,7 +24,18 @@ export type {
 export interface BasesPageOptions {
   /** Default view type when none specified. Default: "table" */
   defaultViewType?: string;
+  /** Custom view renderers. Keys are view type names. These override built-in renderers for the same type, or add new types. */
+  customViews?: Record<string, ViewRenderer>;
 }
+
+/** View renderer function signature */
+export type ViewRenderer = (props: {
+  entries: BasesEntry[];
+  view: BasesView;
+  basesData: BasesData;
+  total: number;
+  locale: string;
+}) => ComponentChild;
 
 /** Sort direction */
 export type SortDirection = "ASC" | "DESC";

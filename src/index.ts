@@ -5,6 +5,7 @@ export type {
   BasesData,
   BasesView,
   BasesEntry,
+  ViewRenderer,
   FilterNode,
   GroupBy,
   SummaryType,

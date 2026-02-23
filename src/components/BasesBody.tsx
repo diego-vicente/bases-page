@@ -4,21 +4,27 @@ import type {
   QuartzComponentConstructor,
   QuartzComponentProps,
 } from "@quartz-community/types";
-import type { BasesData, BasesEntry, BasesPageOptions, BasesView, SummaryType } from "../types";
+import type {
+  BasesData,
+  BasesEntry,
+  BasesPageOptions,
+  BasesView,
+  SummaryType,
+  ViewRenderer,
+} from "../types";
 import { resolveBasesEntries } from "../resolver";
 import { resolvePropertyValue } from "../evaluator";
 import { i18n } from "../i18n";
+import { resolveRelative } from "../util/path";
 import style from "./styles/bases.scss";
 // @ts-ignore
 import script from "./scripts/bases.inline.ts";
 
-type ViewRenderer = (props: {
-  entries: BasesEntry[];
-  view: BasesView;
-  basesData: BasesData;
-  total: number;
-  locale: string;
-}) => ComponentChild;
+const WIKILINK_RE = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
+const MDLINK_RE = /\[([^\]]*)\]\(([^)]+)\)/g;
+const URL_RE = /https?:\/\/[^\s<>]+/g;
+
+type RenderCtx = { slug: string };
 
 function formatMessage(template: string, values: Record<string, string | number>): string {
   return Object.entries(values).reduce(
@@ -32,6 +38,123 @@ function formatValue(value: unknown): string {
   if (Array.isArray(value)) return value.map((item) => String(item)).join(", ");
   if (typeof value === "object") return JSON.stringify(value);
   return String(value);
+}
+
+function renderTextWithLinks(text: string, ctx: RenderCtx): ComponentChild[] {
+  const segments: { start: number; end: number; node: ComponentChild }[] = [];
+  for (const match of text.matchAll(WIKILINK_RE)) {
+    const target = match[1]!;
+    const display = match[2] ?? target;
+    const href = resolveRelative(ctx.slug, target);
+    segments.push({
+      start: match.index,
+      end: match.index + match[0].length,
+      node: (
+        <a href={href} class="internal">
+          {display}
+        </a>
+      ),
+    });
+  }
+
+  for (const match of text.matchAll(MDLINK_RE)) {
+    const overlaps = segments.some(
+      (segment) => match.index < segment.end && match.index + match[0].length > segment.start,
+    );
+    if (overlaps) continue;
+    const display = match[1]!;
+    const href = match[2]!;
+    const isExternal = href.startsWith("http://") || href.startsWith("https://");
+    const resolvedHref = isExternal ? href : resolveRelative(ctx.slug, href);
+    segments.push({
+      start: match.index,
+      end: match.index + match[0].length,
+      node: (
+        <a
+          href={resolvedHref}
+          class={isExternal ? "external" : "internal"}
+          {...(isExternal ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+        >
+          {display || href}
+        </a>
+      ),
+    });
+  }
+
+  for (const match of text.matchAll(URL_RE)) {
+    const overlaps = segments.some(
+      (segment) => match.index < segment.end && match.index + match[0].length > segment.start,
+    );
+    if (overlaps) continue;
+    segments.push({
+      start: match.index,
+      end: match.index + match[0].length,
+      node: (
+        <a href={match[0]} class="external" target="_blank" rel="noopener noreferrer">
+          {match[0]}
+        </a>
+      ),
+    });
+  }
+
+  if (segments.length === 0) return [text];
+
+  segments.sort((a, b) => a.start - b.start);
+
+  const result: ComponentChild[] = [];
+  let cursor = 0;
+  for (const segment of segments) {
+    if (segment.start > cursor) {
+      result.push(text.slice(cursor, segment.start));
+    }
+    result.push(segment.node);
+    cursor = segment.end;
+  }
+  if (cursor < text.length) {
+    result.push(text.slice(cursor));
+  }
+  return result;
+}
+
+function renderCellValue(value: unknown, ctx: RenderCtx): ComponentChild {
+  if (value === null || value === undefined) {
+    return <span class="bases-empty">—</span>;
+  }
+
+  if (typeof value === "boolean") {
+    return <input type="checkbox" checked={value} disabled />;
+  }
+
+  if (typeof value === "number") {
+    return <span class="bases-number">{value}</span>;
+  }
+
+  if (typeof value === "string") {
+    const parts = renderTextWithLinks(value, ctx);
+    return <span class="bases-text">{parts}</span>;
+  }
+
+  if (Array.isArray(value)) {
+    const items = value.map((item, index) => (
+      <>
+        {index > 0 && <span class="bases-separator">, </span>}
+        {renderCellValue(item, ctx)}
+      </>
+    ));
+    return <span class="bases-list">{items}</span>;
+  }
+
+  if (typeof value === "object") {
+    return <code>{JSON.stringify(value)}</code>;
+  }
+
+  return String(value);
+}
+
+function isEmptyValue(value: unknown): boolean {
+  if (value === undefined || value === null || value === "") return true;
+  if (Array.isArray(value)) return value.length === 0;
+  return false;
 }
 
 function getColumnLabel(column: string, basesData: BasesData): string {
@@ -127,30 +250,33 @@ const TableView: ViewRenderer = ({ entries, view, basesData, total, locale }) =>
           </tr>
         </thead>
         <tbody>
-          {entries.map((entry) => (
-            <tr>
-              {columns.map((column) => {
-                const value = resolvePropertyValue(column, {
-                  note: entry.properties,
-                  file: entry.fileProperties,
-                  formula: entry.formulaValues,
-                });
-                const display = formatValue(value);
-                const isPrimary = column === "file.name" || column === "title";
-                return (
-                  <td data-value={display}>
-                    {isPrimary ? (
-                      <a href={`/${entry.slug}`} class="internal" data-slug={entry.slug}>
-                        {display || entry.title}
-                      </a>
-                    ) : (
-                      display
-                    )}
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
+          {entries.map((entry) => {
+            const ctx: RenderCtx = { slug: entry.slug };
+            return (
+              <tr>
+                {columns.map((column) => {
+                  const value = resolvePropertyValue(column, {
+                    note: entry.properties,
+                    file: entry.fileProperties,
+                    formula: entry.formulaValues,
+                  });
+                  const display = formatValue(value);
+                  const isPrimary = column === "file.name" || column === "title";
+                  return (
+                    <td data-value={display}>
+                      {isPrimary ? (
+                        <a href={`/${entry.slug}`} class="internal" data-slug={entry.slug}>
+                          {display || entry.title}
+                        </a>
+                      ) : (
+                        renderCellValue(value, ctx)
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            );
+          })}
         </tbody>
         {hasSummary && (
           <tfoot>
@@ -188,30 +314,33 @@ const ListView: ViewRenderer = ({ entries, view, basesData, total, locale }) => 
         })}
       </div>
       <ul class="bases-list">
-        {entries.map((entry) => (
-          <li class="bases-list-item">
-            <a href={`/${entry.slug}`} class="internal" data-slug={entry.slug}>
-              {entry.title}
-            </a>
-            {columns.length > 1 && (
-              <div class="bases-list-meta">
-                {columns.slice(1).map((column) => {
-                  const value = resolvePropertyValue(column, {
-                    note: entry.properties,
-                    file: entry.fileProperties,
-                    formula: entry.formulaValues,
-                  });
-                  const display = formatValue(value);
-                  return display ? (
-                    <span class="bases-list-chip">
-                      {getColumnLabel(column, basesData)}: {display}
-                    </span>
-                  ) : null;
-                })}
-              </div>
-            )}
-          </li>
-        ))}
+        {entries.map((entry) => {
+          const ctx: RenderCtx = { slug: entry.slug };
+          return (
+            <li class="bases-list-item">
+              <a href={`/${entry.slug}`} class="internal" data-slug={entry.slug}>
+                {entry.title}
+              </a>
+              {columns.length > 1 && (
+                <div class="bases-list-meta">
+                  {columns.slice(1).map((column) => {
+                    const value = resolvePropertyValue(column, {
+                      note: entry.properties,
+                      file: entry.fileProperties,
+                      formula: entry.formulaValues,
+                    });
+                    if (isEmptyValue(value)) return null;
+                    return (
+                      <span class="bases-list-chip">
+                        {getColumnLabel(column, basesData)}: {renderCellValue(value, ctx)}
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
@@ -232,6 +361,7 @@ const CardsView: ViewRenderer = ({ entries, view, basesData, total, locale }) =>
       </div>
       <div class="bases-cards">
         {entries.map((entry) => {
+          const ctx: RenderCtx = { slug: entry.slug };
           const imageValue = imageProperty
             ? resolvePropertyValue(imageProperty, {
                 note: entry.properties,
@@ -258,13 +388,13 @@ const CardsView: ViewRenderer = ({ entries, view, basesData, total, locale }) =>
                       file: entry.fileProperties,
                       formula: entry.formulaValues,
                     });
-                    const display = formatValue(value);
-                    return display ? (
+                    if (isEmptyValue(value)) return null;
+                    return (
                       <div class="bases-card-row">
                         <span class="bases-card-label">{getColumnLabel(column, basesData)}</span>
-                        <span class="bases-card-value">{display}</span>
+                        <span class="bases-card-value">{renderCellValue(value, ctx)}</span>
                       </div>
-                    ) : null;
+                    );
                   })}
                 </div>
               </div>
@@ -320,6 +450,7 @@ export default ((opts?: BasesPageOptions) => {
       0,
       views.findIndex((view) => view.type === preferredType),
     );
+    const allRenderers = { ...viewRenderers, ...(basesOptions?.customViews ?? {}) };
 
     return (
       <div class="bases-page" data-initial-view={initialIndex}>
@@ -339,7 +470,7 @@ export default ((opts?: BasesPageOptions) => {
         <div class="bases-view-container">
           {views.map((view, index) => {
             const { entries, total } = resolveBasesEntries(basesData, props.allFiles, view);
-            const Renderer = viewRenderers[view.type];
+            const Renderer = allRenderers[view.type];
             return (
               <div
                 class={`bases-view ${index === initialIndex ? "is-active" : ""}`}

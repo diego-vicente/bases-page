@@ -75,6 +75,22 @@
   tbody tr:nth-child(even) {
     background: var(--lightgray);
   }
+
+  td .bases-empty {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--gray);
+    display: inline;
+  }
+
+  td code {
+    font-size: 0.85em;
+    padding: 0.1rem 0.3rem;
+    border-radius: 3px;
+    background: var(--highlight);
+    word-break: break-all;
+  }
 }
 
 .bases-sort-indicator {
@@ -102,6 +118,14 @@ th.is-sorted-desc .bases-sort-indicator {
   background: var(--light);
   font-weight: 600;
   color: var(--darkgray);
+}
+
+.bases-separator {
+  color: var(--gray);
+}
+
+.bases-number {
+  font-variant-numeric: tabular-nums;
 }
 
 .bases-list {
