@@ -1,6 +1,6 @@
 # @quartz-community/bases-page
 
-A page type and component plugin that provides support for [Obsidian Bases](https://obsidian.md/changelog/2025-04-15-desktop-v1.8.0/) (`.base` files) in Quartz. It reads `.base` files from your vault, resolves matching notes based on the query definition, and renders them as interactive database-like views with support for tables, lists, cards, and maps.
+A page type and component plugin for Quartz v5 that renders Obsidian Bases (.base files) as database-like filtered views. This plugin (v0.2.0) provides a powerful way to visualize and interact with your Obsidian data in a structured format.
 
 ## Installation
 
@@ -10,11 +10,15 @@ npx quartz plugin add github:quartz-community/bases-page
 
 ## Usage
 
+Enable the plugin in your Quartz configuration:
+
 ```yaml title="quartz.config.yaml"
 plugins:
   - source: github:quartz-community/bases-page
     enabled: true
 ```
+
+### TypeScript Override
 
 For advanced use cases (e.g. custom view renderers), you can override in TypeScript:
 
@@ -31,29 +35,227 @@ ExternalPlugin.BasesPage({
 });
 ```
 
+## Built-in Views
+
+- **Table**: Sortable columns with automatic type rendering for strings, numbers, booleans, arrays, and links. Supports custom column widths and row heights.
+- **List**: A compact list view displaying metadata chips for each entry.
+- **Cards**: A card-based layout with support for an optional image property and configurable card size or aspect ratio.
+- **Gallery**: An image-focused grid layout designed for visual content with configurable card sizes.
+- **Board**: A Kanban-style board that groups entries by a specific property (using boardProperty or groupBy), creating columns for each group value.
+
 ## Features
 
-- **Table view**: Sortable columns with automatic type rendering (strings, numbers, booleans, arrays, links).
-- **List view**: Compact list with metadata chips for each entry.
-- **Cards view**: Card layout with optional image property support.
-- **Map view**: Placeholder for future map-based visualization.
-- **Multiple views**: A single `.base` file can define multiple views, displayed as switchable tabs.
-- **Filters**: Recursive filter trees with `and`/`or`/`not` operators.
-- **Formulas**: Computed properties via formula expressions.
-- **Summaries**: Column-level aggregations (Sum, Average, Min, Max, Median, etc.).
-- **Property configuration**: Custom display names for properties.
-- **Link rendering**: Wikilinks and Markdown links within cell values are rendered as clickable links.
+- Multiple views per .base file (switchable tabs)
+- Recursive filter trees (and/or/not)
+- Formulas (computed properties via expression engine)
+- Summaries (column aggregations: Count, Average, Min, Max, Sum, Range, Median, Stddev, Earliest, Latest, Checked, Unchecked, Empty, Filled, Unique)
+- Property display configuration
+- Wikilink and Markdown link rendering
+- Sort and grouping
 
-## Configuration
+## Expression Engine
 
-| Option            | Type     | Default   | Description                                                                       |
-| ----------------- | -------- | --------- | --------------------------------------------------------------------------------- |
-| `defaultViewType` | `string` | `"table"` | The default view type when none is specified in the `.base` file.                 |
-| `customViews`     | `object` | `{}`      | A map of custom view renderers. Keys are view type names. Requires a TS override. |
+The expression engine follows a pipeline of source, lexer, Pratt parser, AST, bytecode compiler, and stack interpreter.
 
-## Documentation
+### Supported Types
 
-See the [Quartz documentation](https://quartz.jzhao.xyz/plugins/BasesPage) for more information.
+- Strings
+- Numbers
+- Booleans
+- Null
+- Lists
+
+### Operators
+
+- **Arithmetic**: +, -, \*, /
+- **Comparison**: ==, !=, >, <, >=, <=
+- **Logical**: and / &&, or / ||, not / !
+
+### Property Access
+
+- `note.property`: Access a property on the current note.
+- `file.name`: The name of the file.
+- `file.path`: The full path of the file.
+- `file.folder`: The folder containing the file.
+- `file.ext`: The file extension.
+- `file.tags`: A list of tags associated with the file.
+- `file.links`: A list of links in the file.
+- `file.created`: The creation date of the file.
+- `file.modified`: The last modification date of the file.
+- `formula.name`: Access the result of another formula.
+
+### Built-in Global Functions
+
+- `if(condition, then, else)`
+- `contains(container, item)`
+- `date(string)`
+- `duration(string)`
+- `now()`
+- `today()`
+- `number(value)`
+- `min(a, b, ...)`
+- `max(a, b, ...)`
+- `list(value)`
+- `link(path, display?)`
+- `image(url)`
+- `icon(name)`
+- `html(string)`
+- `escapeHTML(string)`
+- `file(path)`
+
+### Method Functions
+
+**Strings**
+
+- `contains(substring)`
+- `startsWith(prefix)`
+- `endsWith(suffix)`
+- `lower()`
+- `upper()`
+- `trim()`
+- `replace(pattern, replacement)`
+- `slice(start, end?)`
+- `isEmpty()`
+- `repeat(count)`
+- `reverse()`
+
+**Numbers**
+
+- `toFixed(digits)`
+- `round()`
+- `floor()`
+- `ceil()`
+- `abs()`
+
+**Dates**
+
+- `format(formatString)`
+- `year()`
+- `month()`
+- `day()`
+- `time()`
+- `relative()`
+- `isEmpty()`
+
+**Lists**
+
+- `sum()`
+- `mean()`
+- `count()`
+- `min()`
+- `max()`
+- `round()`
+
+**File**
+
+- `hasTag(tag)`
+- `hasLink(link)`
+- `inFolder(folder)`
+- `hasProperty(property)`
+
+## Extending with Custom Views
+
+Community extensions can register custom view types using the view registry.
+
+### Registering a View
+
+```typescript
+import { viewRegistry } from "@quartz-community/bases-page/registry";
+
+viewRegistry.register({
+  id: "my-custom-view",
+  name: "My Custom View",
+  icon: "star",
+  render: (props) => {
+    const { entries, view, basesData, total, locale } = props;
+    // Return your React/Preact component
+  },
+});
+```
+
+### Interfaces
+
+**ViewTypeRegistration**
+
+```typescript
+interface ViewTypeRegistration {
+  id: string;
+  name: string;
+  icon?: string;
+  render: ViewRenderer;
+}
+```
+
+**ViewRendererProps**
+
+```typescript
+interface ViewRendererProps {
+  entries: BasesEntry[];
+  view: BasesView;
+  basesData: BasesData;
+  total: number;
+  locale: string;
+}
+```
+
+## Compiler API
+
+The expression engine is available as a public API for advanced usage. Import from `@quartz-community/bases-page/compiler`.
+
+```typescript
+import {
+  compile,
+  evaluate,
+  evaluateFilter,
+  resolvePropertyValue,
+} from "@quartz-community/bases-page/compiler";
+
+// Compile an expression to bytecode
+const compiled = compile("note.price * 1.2");
+
+// Evaluate an expression in a context
+const result = evaluate("note.price * 1.2", context);
+
+// Evaluate a filter node
+const isMatch = evaluateFilter(filterNode, context);
+
+// Resolve a property path
+const value = resolvePropertyValue("file.name", context);
+```
+
+### EvalContext Shape
+
+```typescript
+interface EvalContext {
+  note: Record<string, unknown>;
+  file: {
+    name: string;
+    path: string;
+    folder: string;
+    ext: string;
+    tags: string[];
+    links: string[];
+    created?: string;
+    modified?: string;
+  };
+  formula: Record<string, unknown>;
+}
+```
+
+## Package Exports
+
+- `.`: Main plugin entry (BasesPage, BasesBody, viewRegistry, registerCustomViews, compiler API, types)
+- `./types`: All type definitions
+- `./components`: React/Preact components (BasesBody, ViewSelector)
+- `./registry`: View registry singleton and registerCustomViews helper
+- `./compiler`: Expression engine (compile, evaluate, evaluateFilter, resolvePropertyValue)
+
+## Configuration Options
+
+| Option            | Type                           | Default   | Description                                                          |
+| :---------------- | :----------------------------- | :-------- | :------------------------------------------------------------------- |
+| `defaultViewType` | `string`                       | `"table"` | The default view type used when none is specified in the .base file. |
+| `customViews`     | `Record<string, ViewRenderer>` | `{}`      | Custom view renderers provided via TypeScript override.              |
 
 ## License
 
