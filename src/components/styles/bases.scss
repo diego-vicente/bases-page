@@ -1,9 +1,10 @@
 .bases-page {
   width: 100%;
-  max-width: none;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  overflow: hidden;
 }
 
 .bases-view-tabs {
@@ -46,6 +47,11 @@
   font-size: 0.85rem;
   color: var(--gray);
   margin-bottom: 8px;
+}
+
+.bases-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
 }
 
 .bases-table {
@@ -163,7 +169,7 @@ th.is-sorted-desc .bases-sort-indicator {
 
 .bases-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
   gap: 16px;
 }
 
@@ -230,7 +236,7 @@ th.is-sorted-desc .bases-sort-indicator {
 // Gallery view
 .bases-gallery {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
   gap: 16px;
 }
 
@@ -284,7 +290,7 @@ th.is-sorted-desc .bases-sort-indicator {
 }
 
 .bases-board-column {
-  min-width: 250px;
+  min-width: min(250px, 80vw);
   flex-shrink: 0;
   border: 1px solid var(--lightgray);
   border-radius: 12px;
