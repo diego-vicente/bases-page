@@ -1,5 +1,5 @@
 import type { BasesData, BasesEntry, BasesView, QuartzPluginData } from "./types";
-import { evaluateFilterNode, evaluateFormulaExpression, resolvePropertyValue } from "./evaluator";
+import { evaluate, evaluateFilter, resolvePropertyValue } from "./compiler";
 
 function normalizeStringArray(values: unknown): string[] {
   if (!Array.isArray(values)) return [];
@@ -33,6 +33,21 @@ function buildFileProperties(
   const tags = normalizeStringArray(frontmatter.tags);
   const links = normalizeStringArray(fileData.links ?? fileData.outgoingLinks);
 
+  // Extract dates from file data if available
+  const dates = fileData.dates as Record<string, unknown> | undefined;
+  const created =
+    typeof dates?.created === "string"
+      ? dates.created
+      : dates?.created instanceof Date
+        ? dates.created.toISOString()
+        : undefined;
+  const modified =
+    typeof dates?.modified === "string"
+      ? dates.modified
+      : dates?.modified instanceof Date
+        ? dates.modified.toISOString()
+        : undefined;
+
   return {
     name,
     path: filePath,
@@ -40,6 +55,8 @@ function buildFileProperties(
     ext,
     tags,
     links,
+    created,
+    modified,
   };
 }
 
@@ -98,12 +115,15 @@ export function resolveBasesEntries(
       formula: {} as Record<string, unknown>,
     };
 
+    // Evaluate formulas
     for (const [name, expr] of Object.entries(formulas)) {
-      context.formula[name] = evaluateFormulaExpression(expr, context);
+      context.formula[name] = evaluate(expr, context);
     }
 
-    if (!evaluateFilterNode(basesData.filters, context)) continue;
-    if (view?.filters && !evaluateFilterNode(view.filters, context)) continue;
+    // Apply global filters
+    if (!evaluateFilter(basesData.filters, context)) continue;
+    // Apply view-specific filters
+    if (view?.filters && !evaluateFilter(view.filters, context)) continue;
 
     const title =
       typeof frontmatter.title === "string"

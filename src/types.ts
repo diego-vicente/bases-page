@@ -18,29 +18,52 @@ export type {
   GlobalConfiguration,
 } from "@quartz-community/types";
 
-// === Bases Types ===
+// === View Registry Types ===
 
-/** Plugin options */
-export interface BasesPageOptions {
-  /** Default view type when none specified. Default: "table" */
-  defaultViewType?: string;
-  /** Custom view renderers. Keys are view type names. These override built-in renderers for the same type, or add new types. */
-  customViews?: Record<string, ViewRenderer>;
-}
-
-/** View renderer function signature */
-export type ViewRenderer = (props: {
+/** Props passed to every view renderer */
+export interface ViewRendererProps {
   entries: BasesEntry[];
   view: BasesView;
   basesData: BasesData;
   total: number;
   locale: string;
-}) => ComponentChild;
+}
+
+/** View renderer function signature */
+export type ViewRenderer = (props: ViewRendererProps) => ComponentChild;
+
+/** Registration record for a view type */
+export interface ViewTypeRegistration {
+  /** Unique view type identifier, e.g. "table", "board", "my-custom-view" */
+  id: string;
+  /** Human-readable display name shown in the view selector */
+  name: string;
+  /** Optional Lucide icon name */
+  icon?: string;
+  /** The render function producing Preact JSX */
+  render: ViewRenderer;
+}
+
+// === Plugin Options ===
+
+/** Plugin options for BasesPage */
+export interface BasesPageOptions {
+  /** Default view type when none specified. Default: "table" */
+  defaultViewType?: string;
+  /**
+   * Custom view renderers passed via TS config override.
+   * Keys are view type IDs. These are registered into the ViewRegistry
+   * at plugin init time, alongside (or overriding) built-in views.
+   */
+  customViews?: Record<string, ViewRenderer>;
+}
+
+// === Sort & Filter Types ===
 
 /** Sort direction */
 export type SortDirection = "ASC" | "DESC";
 
-/** Filter tree node — recursive and/or/not structure */
+/** Filter tree node — recursive and/or/not structure matching Obsidian spec */
 export type FilterNode =
   | string
   | { and: FilterNode[] }
@@ -53,8 +76,9 @@ export interface GroupBy {
   direction?: SortDirection;
 }
 
-/** Summary configuration per property */
+/** Summary type — built-in aggregation functions + extensible string for custom */
 export type SummaryType =
+  | "Count"
   | "Average"
   | "Min"
   | "Max"
@@ -76,32 +100,94 @@ export interface PropertyConfig {
   displayName?: string;
 }
 
-/** View definition */
+// === View Definition ===
+
+/** View definition from .base file YAML — matches full Obsidian spec */
 export interface BasesView {
+  /** View type identifier */
   type: string;
+  /** Display name for this view (shown in view selector tab) */
   name?: string;
+  /** Maximum number of entries to display */
   limit?: number;
+  /** Group entries by a property */
   groupBy?: GroupBy;
+  /** View-specific filters (merged with global filters at resolve time) */
   filters?: FilterNode;
+  /** Sort order — list of property paths in priority order */
   order?: string[];
+  /** Per-property summary aggregations */
   summaries?: Record<string, SummaryType>;
+
+  // -- Table-specific --
+  /** Column widths in pixels, keyed by property path */
+  columnSize?: Record<string, number>;
+  /** Row height in pixels */
+  rowHeight?: number;
+
+  // -- Cards / Gallery specific --
+  /** Property name containing the image URL/path */
+  image?: string;
+  /** Card width (unitless ratio or pixels depending on renderer) */
+  cardSize?: number;
+  /** Card aspect ratio (width / height) */
+  cardAspect?: number;
+
+  // -- Calendar specific --
+  /** Property path for the date field */
+  date?: string;
+  /** Alias for date */
+  dateField?: string;
+  /** Alias for date */
+  dateProperty?: string;
+
+  // -- Map specific --
+  /** Property path for coordinates [lat, lng] */
+  coordinates?: string;
+  /** Marker icon name */
+  markerIcon?: string;
+  /** Marker color */
+  markerColor?: string;
+  /** Default zoom level */
+  defaultZoom?: number;
+  /** Default center [lat, lng] */
+  defaultCenter?: [number, number];
+  /** Enable marker clustering */
+  clustering?: boolean;
+
+  // -- Board specific --
+  /** Property to group board columns by (if not using groupBy) */
+  boardProperty?: string;
+
+  /** Escape hatch for future/unknown view-specific fields */
   [key: string]: unknown;
 }
 
-/** Top-level .base file structure */
+// === Top-Level .base File Structure ===
+
+/** Parsed .base file data — top-level YAML structure */
 export interface BasesData {
+  /** Global filters applied to all views */
   filters?: FilterNode;
+  /** Formula definitions — keys are formula names, values are expressions */
   formulas?: Record<string, string>;
+  /** Property display configuration */
   properties?: Record<string, PropertyConfig>;
+  /** Global summary configuration */
   summaries?: Record<string, string>;
+  /** View definitions — each entry defines one tab/view */
   views?: BasesView[];
 }
 
-/** Resolved entry — a note that matches the base query */
+// === Resolved Entry ===
+
+/** Resolved entry — a single note that matched the base query */
 export interface BasesEntry {
+  /** The note's slug (URL path) */
   slug: string;
+  /** Display title */
   title: string;
-  /** All frontmatter properties */
+  /** All frontmatter properties (raw) */
   properties: Record<string, unknown>;
   /** File metadata properties */
   fileProperties: {
@@ -111,6 +197,8 @@ export interface BasesEntry {
     ext: string;
     tags: string[];
     links: string[];
+    created?: string;
+    modified?: string;
   };
   /** Computed formula values */
   formulaValues: Record<string, unknown>;
