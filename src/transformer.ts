@@ -1,4 +1,4 @@
-import type { Root as HTMLRoot, Element } from "hast";
+import type { Root as HTMLRoot, Element, ElementContent } from "hast";
 import type { QuartzTransformerPlugin } from "@quartz-community/types";
 import type { VFile } from "vfile";
 import { visit } from "unist-util-visit";
@@ -12,8 +12,10 @@ import type { BasesData, BasesPageOptions } from "./types";
  * tree-transform hook (when `allFiles` is available).
  *
  * Markdown parsers convert fenced code blocks to `<pre><code class="language-base">`.
- * This plugin detects that pattern, extracts the text content, parses it as YAML
- * via `parseBasesData()`, and replaces the `<pre>` node with a placeholder div.
+ * Syntax highlighters (e.g. rehype-pretty-code) may transform this further to
+ * `<figure><pre><code data-language="base">` with text wrapped in `<span data-line>`.
+ * This plugin detects both patterns, extracts the text content, parses it as YAML
+ * via `parseBasesData()`, and replaces the top-level node with a placeholder div.
  */
 export const BasesTransformer: QuartzTransformerPlugin<Partial<BasesPageOptions>> = (_opts) => {
   return {
@@ -25,19 +27,19 @@ export const BasesTransformer: QuartzTransformerPlugin<Partial<BasesPageOptions>
             const basesBlocks: BasesData[] = [];
 
             visit(tree, "element", (node: Element, index, parent) => {
-              if (node.tagName !== "pre" || !parent || index === undefined) return;
+              if (!parent || index === undefined) return;
 
-              // Look for <pre><code class="language-base">
-              const codeChild = node.children.find(
-                (child): child is Element => child.type === "element" && child.tagName === "code",
-              );
-              if (!codeChild) return;
+              // Detect base codeblocks in two forms:
+              // 1. Raw: <pre><code class="language-base">
+              // 2. Post-syntax-highlighting: <figure><pre><code data-language="base">
+              //    (rehype-pretty-code wraps in <figure> and uses data-language prop)
+              const { codeElement, replaceNode, replaceIndex, replaceParent } =
+                findBaseCodeblock(node, index, parent);
+              if (!codeElement) return;
 
-              const classNames = (codeChild.properties?.className ?? []) as string[];
-              if (!classNames.includes("language-base")) return;
-
-              // Extract raw text from the <code> element
-              const rawText = extractText(codeChild);
+              // Extract raw text from the <code> element (handles both plain
+              // text nodes and <span data-line> wrappers from syntax highlighters)
+              const rawText = extractText(codeElement);
               if (!rawText) return;
 
               // Parse as YAML — parseBasesData handles both raw YAML and ``` fenced blocks
@@ -57,7 +59,7 @@ export const BasesTransformer: QuartzTransformerPlugin<Partial<BasesPageOptions>
                 children: [],
               };
 
-              parent.children[index] = placeholder;
+              replaceParent.children[replaceIndex] = placeholder;
             });
 
             if (basesBlocks.length > 0) {
@@ -71,8 +73,80 @@ export const BasesTransformer: QuartzTransformerPlugin<Partial<BasesPageOptions>
 };
 
 /**
+ * Detect whether a HAST node is (or contains) a ```base codeblock.
+ * Returns the code element and the node/parent/index to replace.
+ *
+ * Handles two shapes:
+ * - `<pre><code class="language-base">` (standard markdown → HTML)
+ * - `<figure data-rehype-pretty-code-figure><pre><code data-language="base">` (after syntax highlighting)
+ */
+function findBaseCodeblock(
+  node: Element,
+  index: number | undefined,
+  parent: { children: (ElementContent | import("hast").RootContent)[] },
+): {
+  codeElement: Element | null;
+  replaceNode: Element;
+  replaceIndex: number;
+  replaceParent: { children: (ElementContent | import("hast").RootContent)[] };
+} {
+  const empty = { codeElement: null, replaceNode: node, replaceIndex: index ?? 0, replaceParent: parent };
+
+  // Case 1: node is <pre> directly
+  if (node.tagName === "pre") {
+    const code = findCodeChild(node);
+    if (code && isBaseLanguage(code)) {
+      return { codeElement: code, replaceNode: node, replaceIndex: index ?? 0, replaceParent: parent };
+    }
+    return empty;
+  }
+
+  // Case 2: node is <figure data-rehype-pretty-code-figure> wrapping <pre><code>
+  if (node.tagName === "figure" && node.properties?.dataRehypePrettyCodeFigure !== undefined) {
+    const pre = node.children.find(
+      (child): child is Element => child.type === "element" && child.tagName === "pre",
+    );
+    if (pre) {
+      const code = findCodeChild(pre);
+      if (code && isBaseLanguage(code)) {
+        // Replace the <figure>, not just the <pre>
+        return { codeElement: code, replaceNode: node, replaceIndex: index ?? 0, replaceParent: parent };
+      }
+    }
+    return empty;
+  }
+
+  return empty;
+}
+
+/** Find the first <code> child element */
+function findCodeChild(pre: Element): Element | null {
+  return (
+    pre.children.find(
+      (child): child is Element => child.type === "element" && child.tagName === "code",
+    ) ?? null
+  );
+}
+
+/**
+ * Check whether a <code> element represents a `base` language block.
+ * Checks both `class="language-base"` (standard) and `data-language="base"` (rehype-pretty-code).
+ */
+function isBaseLanguage(code: Element): boolean {
+  // Standard: class includes "language-base"
+  const classNames = (code.properties?.className ?? []) as string[];
+  if (classNames.includes("language-base")) return true;
+
+  // rehype-pretty-code: data-language="base"
+  if (code.properties?.dataLanguage === "base") return true;
+
+  return false;
+}
+
+/**
  * Recursively extract text content from a HAST element.
- * Avoids regex by walking the tree structure directly.
+ * Handles both plain text nodes and <span data-line> wrappers
+ * from syntax highlighters. Avoids regex by walking the tree directly.
  */
 function extractText(node: Element): string {
   const parts: string[] = [];
@@ -84,7 +158,7 @@ function extractText(node: Element): string {
     }
   }
   return parts.join("");
-}
+ }
 
 declare module "vfile" {
   interface DataMap {
