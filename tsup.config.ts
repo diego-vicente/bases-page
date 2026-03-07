@@ -89,7 +89,7 @@ export default defineConfig({
   clean: true,
   treeshake: true,
   target: "es2022",
-  splitting: false,
+  splitting: true,
   outDir: "dist",
   esbuildOptions(options) {
     options.jsx = "automatic";
