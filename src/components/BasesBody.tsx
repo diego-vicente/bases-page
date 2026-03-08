@@ -49,14 +49,12 @@ export default ((opts?: BasesPageOptions) => {
       registerCustomViews(basesOptions.customViews);
     }
 
-    // Collect CSS and scripts from custom view registrations (deduplicated by type)
+    // Collect CSS from custom view registrations (deduplicated by type)
     const activeTypes = new Set(views.map((v) => v.type));
     const viewCssChunks: string[] = [];
-    const viewScriptChunks: string[] = [];
     for (const typeId of activeTypes) {
       const reg = viewRegistry.get(typeId);
       if (reg?.css) viewCssChunks.push(reg.css);
-      if (reg?.afterDOMLoaded) viewScriptChunks.push(reg.afterDOMLoaded);
     }
 
     return (
@@ -96,15 +94,18 @@ export default ((opts?: BasesPageOptions) => {
             );
           })}
         </div>
-        {viewScriptChunks.length > 0 && (
-          <script dangerouslySetInnerHTML={{ __html: viewScriptChunks.join("\n") }} />
-        )}
       </div>
     );
   };
 
   Component.css = style;
-  Component.afterDOMLoaded = script;
+  // Collect afterDOMLoaded scripts from all registered views so they get
+  // bundled into postscript.js (SPA-compatible) instead of inline <script> tags.
+  const viewScripts = viewRegistry
+    .getAll()
+    .map((reg) => reg.afterDOMLoaded)
+    .filter((s): s is string => typeof s === "string" && s.length > 0);
+  Component.afterDOMLoaded = [script, ...viewScripts];
 
   return Component;
 }) satisfies QuartzComponentConstructor<BasesPageOptions>;

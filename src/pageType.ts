@@ -152,14 +152,12 @@ function renderBasesInline(
     views.findIndex((view) => view.type === preferredType),
   );
 
-  // Collect CSS and scripts from custom view registrations (deduplicated by type)
+  // Collect CSS from custom view registrations (deduplicated by type)
   const activeTypes = new Set(views.map((v) => v.type));
   const viewCssChunks: string[] = [];
-  const viewScriptChunks: string[] = [];
   for (const typeId of activeTypes) {
     const reg = viewRegistry.get(typeId);
     if (reg?.css) viewCssChunks.push(reg.css);
-    if (reg?.afterDOMLoaded) viewScriptChunks.push(reg.afterDOMLoaded);
   }
 
   // Render the view selector
@@ -191,9 +189,6 @@ function renderBasesInline(
   const cssBlock = viewCssChunks.length > 0
     ? `<style>${viewCssChunks.join("\n")}</style>`
     : "";
-  const scriptBlock = viewScriptChunks.length > 0
-    ? `<script>${viewScriptChunks.join("\n")}</script>`
-    : "";
 
-  return `${cssBlock}${selectorHtml}<div class="bases-view-container">${viewPanels.join("")}</div>${scriptBlock}`;
+  return `${cssBlock}${selectorHtml}<div class="bases-view-container">${viewPanels.join("")}</div>`;
 }
