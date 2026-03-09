@@ -33,11 +33,12 @@ export const BasesTransformer: QuartzTransformerPlugin<Partial<BasesPageOptions>
               // 1. Raw: <pre><code class="language-base">
               // 2. Post-syntax-highlighting: <figure><pre><code data-language="base">
               //    (rehype-pretty-code wraps in <figure> and uses data-language prop)
-              const { codeElement, replaceNode, replaceIndex, replaceParent } = findBaseCodeblock(
-                node,
-                index,
-                parent,
-              );
+              const {
+                codeElement,
+                replaceNode: _replaceNode,
+                replaceIndex,
+                replaceParent,
+              } = findBaseCodeblock(node, index, parent);
               if (!codeElement) return;
 
               // Extract raw text from the <code> element (handles both plain

@@ -68,7 +68,7 @@ export const BasesPage: QuartzPageTypePlugin<BasesPageOptions> = (opts) => ({
   },
   layout: "bases",
   body: BasesBody,
-  treeTransforms(ctx) {
+  treeTransforms(_ctx) {
     return [createBasesCodeblockTransform(opts)];
   },
 });
