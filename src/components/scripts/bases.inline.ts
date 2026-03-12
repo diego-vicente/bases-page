@@ -97,5 +97,8 @@ function initBases() {
 document.addEventListener("nav", () => {
   initBases();
 });
+document.addEventListener("render", () => {
+  initBases();
+});
 
 initBases();
