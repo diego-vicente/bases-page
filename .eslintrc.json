@@ -29,6 +29,12 @@
       "rules": {
         "@typescript-eslint/ban-ts-comment": "off"
       }
+    },
+    {
+      "files": ["types/**/*.d.ts"],
+      "rules": {
+        "@typescript-eslint/triple-slash-reference": "off"
+      }
     }
   ]
 }
