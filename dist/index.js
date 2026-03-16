@@ -1,16 +1,22 @@
-import { BasesBody_default, resolveBasesEntries, registerBuiltinViews, i18n, ViewSelector } from './chunk-HHQ2K6HH.js';
-export { BasesBody_default as BasesBody } from './chunk-HHQ2K6HH.js';
-import { registerCustomViews, viewRegistry } from './chunk-LHVPD2IS.js';
-export { registerCustomViews, viewRegistry } from './chunk-LHVPD2IS.js';
-export { compile, evaluate, evaluateFilter, resolvePropertyValue } from './chunk-RBP2NPYV.js';
-import { visit } from 'unist-util-visit';
-import { render } from 'preact-render-to-string';
-import { h, Fragment } from 'preact';
-import { fromHtml } from 'hast-util-from-html';
-import { readFileSync } from 'fs';
-import { join } from 'path';
-import { parse } from 'yaml';
-export { transformLink } from '@quartz-community/utils';
+import {
+  BasesBody_default,
+  resolveBasesEntries,
+  registerBuiltinViews,
+  i18n,
+  ViewSelector,
+} from "./chunk-IJYBZIBL.js";
+export { BasesBody_default as BasesBody } from "./chunk-IJYBZIBL.js";
+import { registerCustomViews, viewRegistry } from "./chunk-LHVPD2IS.js";
+export { registerCustomViews, viewRegistry } from "./chunk-LHVPD2IS.js";
+export { compile, evaluate, evaluateFilter, resolvePropertyValue } from "./chunk-RBP2NPYV.js";
+import { visit } from "unist-util-visit";
+import { render } from "preact-render-to-string";
+import { h, Fragment } from "preact";
+import { fromHtml } from "hast-util-from-html";
+import { readFileSync } from "fs";
+import { join } from "path";
+import { parse } from "yaml";
+export { transformLink } from "@quartz-community/utils";
 
 function extractBaseBlock(raw) {
   const lines = raw.split("\n");
@@ -38,12 +44,14 @@ function extractBaseBlock(raw) {
 function normalizeViews(views) {
   if (views === void 0) return void 0;
   if (!Array.isArray(views)) return null;
-  const normalized = views.map((view) => {
-    if (!view || typeof view !== "object" || Array.isArray(view)) return null;
-    const record = view;
-    if (typeof record.type !== "string") return null;
-    return record;
-  }).filter((view) => view !== null);
+  const normalized = views
+    .map((view) => {
+      if (!view || typeof view !== "object" || Array.isArray(view)) return null;
+      const record = view;
+      if (typeof record.type !== "string") return null;
+      return record;
+    })
+    .filter((view) => view !== null);
   return normalized;
 }
 function parseBasesData(raw) {
@@ -63,7 +71,7 @@ function parseBasesData(raw) {
   if (views === null) return null;
   return {
     ...record,
-    views
+    views,
   };
 }
 
@@ -99,8 +107,8 @@ var BasesPage = (opts) => ({
           frontmatter: { title: baseName, tags: [] },
           links: resolveBasesEntries(basesData, allFileData).entries.map((e) => e.slug),
           basesData,
-          basesOptions: opts
-        }
+          basesOptions: opts,
+        },
       });
     }
     return virtualPages;
@@ -109,7 +117,7 @@ var BasesPage = (opts) => ({
   body: BasesBody_default,
   treeTransforms(_ctx) {
     return [createBasesCodeblockTransform(opts)];
-  }
+  },
 });
 function createBasesCodeblockTransform(opts) {
   let builtinViewsRegistered = false;
@@ -145,7 +153,7 @@ function createBasesCodeblockTransform(opts) {
         opts,
         slug,
         allSlugs,
-        linkResolution
+        linkResolution,
       );
       const fragment = fromHtml(htmlString, { fragment: true });
       node.tagName = "div";
@@ -154,7 +162,16 @@ function createBasesCodeblockTransform(opts) {
     });
   };
 }
-function renderBasesInline(basesData, allFiles, locale, localeStrings, opts, slug, allSlugs, linkResolution) {
+function renderBasesInline(
+  basesData,
+  allFiles,
+  locale,
+  localeStrings,
+  opts,
+  slug,
+  allSlugs,
+  linkResolution,
+) {
   const views = basesData.views ?? [];
   if (views.length === 0) {
     return `<div class="bases-empty">${localeStrings.noViews}</div>`;
@@ -162,7 +179,7 @@ function renderBasesInline(basesData, allFiles, locale, localeStrings, opts, slu
   const preferredType = opts?.defaultViewType ?? "table";
   const initialIndex = Math.max(
     0,
-    views.findIndex((view) => view.type === preferredType)
+    views.findIndex((view) => view.type === preferredType),
   );
   const activeTypes = new Set(views.map((v) => v.type));
   const viewCssChunks = [];
@@ -171,7 +188,7 @@ function renderBasesInline(basesData, allFiles, locale, localeStrings, opts, slu
     if (reg?.css) viewCssChunks.push(reg.css);
   }
   const selectorHtml = render(
-    h(Fragment, null, ViewSelector({ views, activeIndex: initialIndex, locale }))
+    h(Fragment, null, ViewSelector({ views, activeIndex: initialIndex, locale })),
   );
   const viewPanels = views.map((view, index) => {
     const { entries, total } = resolveBasesEntries(basesData, allFiles, view);
@@ -186,8 +203,18 @@ function renderBasesInline(basesData, allFiles, locale, localeStrings, opts, slu
         h(
           Fragment,
           null,
-          Renderer({ entries, view, basesData, total, locale, slug, allSlugs, linkResolution })
-        )
+          Renderer({
+            entries,
+            view,
+            basesData,
+            total,
+            locale,
+            slug,
+            allSlugs,
+            linkResolution,
+            options: registration?.options,
+          }),
+        ),
       );
     } else {
       innerHtml = `<div class="bases-empty">Unknown view type: ${view.type}</div>`;
@@ -211,7 +238,7 @@ var BasesTransformer = (_opts) => {
                 codeElement,
                 replaceNode: _replaceNode,
                 replaceIndex,
-                replaceParent
+                replaceParent,
               } = findBaseCodeblock(node, index, parent);
               if (!codeElement) return;
               const rawText = extractText(codeElement);
@@ -224,9 +251,9 @@ var BasesTransformer = (_opts) => {
                 type: "element",
                 tagName: "div",
                 properties: {
-                  dataQzBasesCodeblock: String(blockIndex)
+                  dataQzBasesCodeblock: String(blockIndex),
                 },
-                children: []
+                children: [],
               };
               replaceParent.children[replaceIndex] = placeholder;
             });
@@ -234,9 +261,9 @@ var BasesTransformer = (_opts) => {
               file.data.basesBlocks = basesBlocks;
             }
           };
-        }
+        },
       ];
-    }
+    },
   };
 };
 function findBaseCodeblock(node, index, parent) {
@@ -244,7 +271,7 @@ function findBaseCodeblock(node, index, parent) {
     codeElement: null,
     replaceNode: node,
     replaceIndex: index ?? 0,
-    replaceParent: parent
+    replaceParent: parent,
   };
   if (node.tagName === "pre") {
     const code = findCodeChild(node);
@@ -253,15 +280,13 @@ function findBaseCodeblock(node, index, parent) {
         codeElement: code,
         replaceNode: node,
         replaceIndex: index ?? 0,
-        replaceParent: parent
+        replaceParent: parent,
       };
     }
     return empty;
   }
   if (node.tagName === "figure" && node.properties?.dataRehypePrettyCodeFigure !== void 0) {
-    const pre = node.children.find(
-      (child) => child.type === "element" && child.tagName === "pre"
-    );
+    const pre = node.children.find((child) => child.type === "element" && child.tagName === "pre");
     if (pre) {
       const code = findCodeChild(pre);
       if (code && isBaseLanguage(code)) {
@@ -269,7 +294,7 @@ function findBaseCodeblock(node, index, parent) {
           codeElement: code,
           replaceNode: node,
           replaceIndex: index ?? 0,
-          replaceParent: parent
+          replaceParent: parent,
         };
       }
     }
@@ -278,9 +303,7 @@ function findBaseCodeblock(node, index, parent) {
   return empty;
 }
 function findCodeChild(pre) {
-  return pre.children.find(
-    (child) => child.type === "element" && child.tagName === "code"
-  ) ?? null;
+  return pre.children.find((child) => child.type === "element" && child.tagName === "code") ?? null;
 }
 function isBaseLanguage(code) {
   const classNames = code.properties?.className ?? [];

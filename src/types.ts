@@ -33,6 +33,8 @@ export interface ViewRendererProps {
   allSlugs: string[];
   /** Link resolution strategy ("absolute" | "relative" | "shortest"). Passed from plugin options. */
   linkResolution: "absolute" | "relative" | "shortest";
+  /** Plugin-level options from the view type registration, if any. */
+  options?: Record<string, unknown>;
 }
 
 /** View renderer function signature */
@@ -60,6 +62,13 @@ export interface ViewTypeRegistration {
    * `QuartzComponent.afterDOMLoaded`. Deduplicated by view type ID.
    */
   afterDOMLoaded?: string;
+  /**
+   * Optional user-supplied configuration for this view type. Community plugins
+   * can use this to accept plugin-level options (e.g. feature flags, CDN URLs)
+   * that are set once at registration time and passed through to every render
+   * invocation via `ViewRendererProps.options`.
+   */
+  options?: Record<string, unknown>;
 }
 
 // === Plugin Options ===

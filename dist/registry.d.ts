@@ -1,6 +1,6 @@
-import { ViewRenderer, ViewTypeRegistration } from './types.js';
-import 'preact';
-import '@quartz-community/types';
+import { ViewRenderer, ViewTypeRegistration } from "./types.js";
+import "preact";
+import "@quartz-community/types";
 
 /**
  * Central registry for Bases view types.
@@ -22,21 +22,21 @@ import '@quartz-community/types';
  * ```
  */
 declare class ViewRegistry {
-    private views;
-    /**
-     * Register a view type. If a view with the same ID already exists it is
-     * silently replaced — this lets config-level `customViews` override built-in
-     * renderers for the same type.
-     */
-    register(registration: ViewTypeRegistration): void;
-    /** Look up a registered view type by ID. */
-    get(id: string): ViewTypeRegistration | undefined;
-    /** Return all registered view types (insertion order). */
-    getAll(): ViewTypeRegistration[];
-    /** Check whether a view type is registered. */
-    has(id: string): boolean;
-    /** Remove a view type registration. Returns true if it existed. */
-    unregister(id: string): boolean;
+  private views;
+  /**
+   * Register a view type. If a view with the same ID already exists it is
+   * silently replaced — this lets config-level `customViews` override built-in
+   * renderers for the same type.
+   */
+  register(registration: ViewTypeRegistration): void;
+  /** Look up a registered view type by ID. */
+  get(id: string): ViewTypeRegistration | undefined;
+  /** Return all registered view types (insertion order). */
+  getAll(): ViewTypeRegistration[];
+  /** Check whether a view type is registered. */
+  has(id: string): boolean;
+  /** Remove a view type registration. Returns true if it existed. */
+  unregister(id: string): boolean;
 }
 declare const viewRegistry: ViewRegistry;
 /**

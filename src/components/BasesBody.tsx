@@ -86,6 +86,7 @@ export default ((opts?: BasesPageOptions) => {
                     slug={slug}
                     allSlugs={allSlugs}
                     linkResolution={linkResolution}
+                    options={registration.options}
                   />
                 ) : (
                   <div class="bases-empty">Unknown view type: {view.type}</div>

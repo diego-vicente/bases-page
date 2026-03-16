@@ -97,7 +97,11 @@ var Compiler = class {
     this.patchJump(jumpEnd, endIndex);
   }
   compileMember(expression) {
-    if (expression.object.type === "Identifier" && expression.object.name === "formula" && expression.property) {
+    if (
+      expression.object.type === "Identifier" &&
+      expression.object.name === "formula" &&
+      expression.property
+    ) {
       this.emit({ type: "LoadFormula", name: expression.property });
       return;
     }
@@ -121,7 +125,7 @@ var Compiler = class {
       this.emit({
         type: "CallGlobal",
         name: expression.callee.name,
-        argc: expression.args.length
+        argc: expression.args.length,
       });
       return;
     }
@@ -133,7 +137,7 @@ var Compiler = class {
       this.emit({
         type: "CallMethod",
         name: expression.callee.property,
-        argc: expression.args.length
+        argc: expression.args.length,
       });
       return;
     }
@@ -203,7 +207,7 @@ var KEYWORDS = /* @__PURE__ */ new Map([
   ["null", "Null" /* Null */],
   ["and", "And" /* And */],
   ["or", "Or" /* Or */],
-  ["not", "Not" /* Not */]
+  ["not", "Not" /* Not */],
 ]);
 function isWhitespace(ch) {
   return ch === " " || ch === "	" || ch === "\n" || ch === "\r";
@@ -216,7 +220,7 @@ function isDigit(ch) {
 function isAlpha(ch) {
   if (!ch) return false;
   const code = ch.charCodeAt(0);
-  return code >= 65 && code <= 90 || code >= 97 && code <= 122;
+  return (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
 }
 function isIdentifierStart(ch) {
   return isAlpha(ch) || ch === "_" || ch === "$";
@@ -255,7 +259,7 @@ var Lexer = class {
     tokens.push({
       type: "EOF" /* EOF */,
       value: "",
-      span: { start: this.index, end: this.index }
+      span: { start: this.index, end: this.index },
     });
     return tokens;
   }
@@ -479,7 +483,10 @@ var Parser = class {
     return { type: "Call", callee, args, span };
   }
   parseMember(object) {
-    const propertyToken = this.expect("Identifier" /* Identifier */, "Expected property name after '.'");
+    const propertyToken = this.expect(
+      "Identifier" /* Identifier */,
+      "Expected property name after '.'",
+    );
     const span = this.mergeSpan(object.span, propertyToken.span);
     return { type: "Member", object, property: propertyToken.value, span };
   }
@@ -591,11 +598,14 @@ var Parser = class {
     return token;
   }
   peek() {
-    return this.tokens[this.index] ?? this.tokens[this.tokens.length - 1] ?? {
-      type: "EOF" /* EOF */,
-      value: "",
-      span: { start: 0, end: 0 }
-    };
+    return (
+      this.tokens[this.index] ??
+      this.tokens[this.tokens.length - 1] ?? {
+        type: "EOF" /* EOF */,
+        value: "",
+        span: { start: 0, end: 0 },
+      }
+    );
   }
   isAtEnd() {
     return this.peek().type === "EOF" /* EOF */;
@@ -670,7 +680,14 @@ function collectNumericArgs(args) {
 }
 function isFileValue(value) {
   if (!isRecord(value)) return false;
-  return typeof value.name === "string" && typeof value.path === "string" && typeof value.folder === "string" && typeof value.ext === "string" && Array.isArray(value.tags) && Array.isArray(value.links);
+  return (
+    typeof value.name === "string" &&
+    typeof value.path === "string" &&
+    typeof value.folder === "string" &&
+    typeof value.ext === "string" &&
+    Array.isArray(value.tags) &&
+    Array.isArray(value.links)
+  );
 }
 function isDateValue(value) {
   return value instanceof Date;
@@ -678,7 +695,7 @@ function isDateValue(value) {
 function isAlpha2(ch) {
   if (!ch) return false;
   const code = ch.charCodeAt(0);
-  return code >= 65 && code <= 90 || code >= 97 && code <= 122;
+  return (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
 }
 function isDigit2(ch) {
   if (!ch) return false;
@@ -696,7 +713,7 @@ function parseDuration(value) {
     d: 864e5,
     w: 6048e5,
     mo: 2592e6,
-    y: 31536e6
+    y: 31536e6,
   };
   let index = 0;
   let total = 0;
@@ -790,7 +807,7 @@ function buildFileValue(path) {
     folder,
     ext,
     tags: [],
-    links: []
+    links: [],
   };
 }
 function getMethodTarget(value) {
@@ -858,7 +875,12 @@ registerGlobalFunction("icon", ([name]) => {
 registerGlobalFunction("html", ([value]) => toStringValue(value));
 registerGlobalFunction("escapeHTML", ([value]) => {
   const text = toStringValue(value);
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 });
 registerGlobalFunction("file", ([path]) => {
   if (typeof path !== "string") return void 0;
@@ -926,10 +948,8 @@ registerMethodFunction("string", "repeat", (target, [count]) => {
   if (times <= 0) return "";
   return source.repeat(times);
 });
-registerMethodFunction(
-  "string",
-  "reverse",
-  (target) => toStringValue(target).split("").reverse().join("")
+registerMethodFunction("string", "reverse", (target) =>
+  toStringValue(target).split("").reverse().join(""),
 );
 registerMethodFunction("number", "toFixed", (target, [digits]) => {
   const value = toNumber(target);
@@ -966,25 +986,17 @@ registerMethodFunction("date", "format", (target, [format]) => {
   }
   return target.toISOString();
 });
-registerMethodFunction(
-  "date",
-  "year",
-  (target) => isDateValue(target) ? target.getFullYear() : void 0
+registerMethodFunction("date", "year", (target) =>
+  isDateValue(target) ? target.getFullYear() : void 0,
 );
-registerMethodFunction(
-  "date",
-  "month",
-  (target) => isDateValue(target) ? target.getMonth() + 1 : void 0
+registerMethodFunction("date", "month", (target) =>
+  isDateValue(target) ? target.getMonth() + 1 : void 0,
 );
-registerMethodFunction(
-  "date",
-  "day",
-  (target) => isDateValue(target) ? target.getDate() : void 0
+registerMethodFunction("date", "day", (target) =>
+  isDateValue(target) ? target.getDate() : void 0,
 );
-registerMethodFunction(
-  "date",
-  "time",
-  (target) => isDateValue(target) ? target.getTime() : void 0
+registerMethodFunction("date", "time", (target) =>
+  isDateValue(target) ? target.getTime() : void 0,
 );
 registerMethodFunction("date", "relative", (target) => {
   if (!isDateValue(target)) return void 0;
@@ -1018,7 +1030,7 @@ registerMethodFunction("list", "mean", (target) => {
   const sum = numbers.reduce((total, value) => total + value, 0);
   return sum / numbers.length;
 });
-registerMethodFunction("list", "count", (target) => Array.isArray(target) ? target.length : 0);
+registerMethodFunction("list", "count", (target) => (Array.isArray(target) ? target.length : 0));
 registerMethodFunction("list", "min", (target) => {
   if (!Array.isArray(target)) return void 0;
   const numbers = collectNumericArgs(target);

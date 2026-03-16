@@ -187,7 +187,17 @@ function renderBasesInline(
         h(
           Fragment,
           null,
-          Renderer({ entries, view, basesData, total, locale, slug, allSlugs, linkResolution }),
+          Renderer({
+            entries,
+            view,
+            basesData,
+            total,
+            locale,
+            slug,
+            allSlugs,
+            linkResolution,
+            options: registration?.options,
+          }),
         ),
       );
     } else {

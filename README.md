@@ -27,8 +27,19 @@ import * as ExternalPlugin from "./.quartz/plugins";
 
 ExternalPlugin.BasesPage({
   defaultViewType: "table",
+  linkResolution: "shortest",
   customViews: {
-    myView: ({ entries, view, basesData, total, locale }) => {
+    myView: ({
+      entries,
+      view,
+      basesData,
+      total,
+      locale,
+      slug,
+      allSlugs,
+      linkResolution,
+      options,
+    }) => {
       // return JSX
     },
   },
@@ -167,9 +178,13 @@ viewRegistry.register({
   name: "My Custom View",
   icon: "star",
   render: (props) => {
-    const { entries, view, basesData, total, locale } = props;
+    const { entries, view, basesData, total, locale, slug, allSlugs, linkResolution, options } =
+      props;
     // Return your React/Preact component
   },
+  css: `.my-custom-view { color: red; }`,
+  afterDOMLoaded: `console.log("My custom view loaded");`,
+  options: { enableFeatureX: true },
 });
 ```
 
@@ -183,6 +198,9 @@ interface ViewTypeRegistration {
   name: string;
   icon?: string;
   render: ViewRenderer;
+  css?: string;
+  afterDOMLoaded?: string;
+  options?: Record<string, unknown>;
 }
 ```
 
@@ -195,8 +213,35 @@ interface ViewRendererProps {
   basesData: BasesData;
   total: number;
   locale: string;
+  slug: string;
+  allSlugs: string[];
+  linkResolution: "absolute" | "relative" | "shortest";
+  options?: Record<string, unknown>;
 }
 ```
+
+### Passing Options to a Custom View
+
+Community plugins can use the `options` field to accept configuration at registration time. This is useful for feature flags, API keys, or other plugin-level settings.
+
+```typescript
+import { viewRegistry } from "@quartz-community/bases-page/registry";
+import type { LeafletMapPluginOptions } from "./types";
+
+const defaultOptions: LeafletMapPluginOptions = {
+  enableCopyTool: false,
+};
+
+export function registerLeafletMap(userOpts?: Partial<LeafletMapPluginOptions>): void {
+  const opts = { ...defaultOptions, ...userOpts };
+  viewRegistry.register({
+    ...leafletMapViewRegistration,
+    options: opts,
+  });
+}
+```
+
+In the renderer, these options are available via `props.options` and should be cast to the plugin's options type.
 
 ## Compiler API
 
@@ -252,10 +297,11 @@ interface EvalContext {
 
 ## Configuration Options
 
-| Option            | Type                           | Default   | Description                                                          |
-| :---------------- | :----------------------------- | :-------- | :------------------------------------------------------------------- |
-| `defaultViewType` | `string`                       | `"table"` | The default view type used when none is specified in the .base file. |
-| `customViews`     | `Record<string, ViewRenderer>` | `{}`      | Custom view renderers provided via TypeScript override.              |
+| Option            | Type                                     | Default      | Description                                                                                    |
+| :---------------- | :--------------------------------------- | :----------- | :--------------------------------------------------------------------------------------------- |
+| `defaultViewType` | `string`                                 | `"table"`    | The default view type used when none is specified in the .base file.                           |
+| `linkResolution`  | `"absolute" \| "relative" \| "shortest"` | `"shortest"` | How to resolve internal links in view renderers. Should match your crawl-links plugin setting. |
+| `customViews`     | `Record<string, ViewRenderer>`           | `{}`         | Custom view renderers provided via TypeScript override.                                        |
 
 ## License
 

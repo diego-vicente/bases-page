@@ -1,5 +1,5 @@
-import { QuartzComponent } from '@quartz-community/types';
-import { BasesPageOptions } from './types.js';
+import { QuartzComponent } from "@quartz-community/types";
+import { BasesPageOptions } from "./types.js";
 
 declare const _default: (opts?: BasesPageOptions) => QuartzComponent;
 

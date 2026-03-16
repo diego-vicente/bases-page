@@ -106,7 +106,9 @@
     "sass": "^1.97.3",
     "tsup": "^8.5.0",
     "typescript": "^5.9.3",
-    "vitest": "^2.1.9"
+    "unist-util-visit": "^5.1.0",
+    "vitest": "^2.1.9",
+    "yaml": "^2.8.1"
   },
   "quartz": {
     "name": "bases-page",

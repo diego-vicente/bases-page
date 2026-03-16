@@ -1,126 +1,155 @@
-import { FilterNode } from '../types.js';
-import 'preact';
-import '@quartz-community/types';
+import { FilterNode } from "../types.js";
+import "preact";
+import "@quartz-community/types";
 
 type Span = {
-    start: number;
-    end: number;
+  start: number;
+  end: number;
 };
 
 type LiteralValue = string | number | boolean | null;
 type UnaryOperator = "!" | "-";
 type BinaryOperator = "+" | "-" | "*" | "/" | "==" | "!=" | ">" | "<" | ">=" | "<=" | "&&" | "||";
 type BaseNode = {
-    type: string;
-    span: Span;
+  type: string;
+  span: Span;
 };
 type LiteralExpression = BaseNode & {
-    type: "Literal";
-    value: LiteralValue;
+  type: "Literal";
+  value: LiteralValue;
 };
 type IdentifierExpression = BaseNode & {
-    type: "Identifier";
-    name: string;
+  type: "Identifier";
+  name: string;
 };
 type UnaryExpression = BaseNode & {
-    type: "Unary";
-    operator: UnaryOperator;
-    argument: Expression;
+  type: "Unary";
+  operator: UnaryOperator;
+  argument: Expression;
 };
 type BinaryExpression = BaseNode & {
-    type: "Binary";
-    operator: BinaryOperator;
-    left: Expression;
-    right: Expression;
+  type: "Binary";
+  operator: BinaryOperator;
+  left: Expression;
+  right: Expression;
 };
 type CallExpression = BaseNode & {
-    type: "Call";
-    callee: Expression;
-    args: Expression[];
+  type: "Call";
+  callee: Expression;
+  args: Expression[];
 };
 type MemberExpression = BaseNode & {
-    type: "Member";
-    object: Expression;
-    property: string;
+  type: "Member";
+  object: Expression;
+  property: string;
 };
 type IndexExpression = BaseNode & {
-    type: "Index";
-    object: Expression;
-    index: Expression;
+  type: "Index";
+  object: Expression;
+  index: Expression;
 };
 type ListExpression = BaseNode & {
-    type: "List";
-    elements: Expression[];
+  type: "List";
+  elements: Expression[];
 };
-type Expression = LiteralExpression | IdentifierExpression | UnaryExpression | BinaryExpression | CallExpression | MemberExpression | IndexExpression | ListExpression;
+type Expression =
+  | LiteralExpression
+  | IdentifierExpression
+  | UnaryExpression
+  | BinaryExpression
+  | CallExpression
+  | MemberExpression
+  | IndexExpression
+  | ListExpression;
 
-type Instruction = {
-    type: "Const";
-    value: LiteralValue | undefined;
-} | {
-    type: "Ident";
-    name: string;
-} | {
-    type: "LoadFormula";
-    name: string;
-} | {
-    type: "Member";
-    name: string;
-} | {
-    type: "Index";
-} | {
-    type: "List";
-    count: number;
-} | {
-    type: "Unary";
-    operator: UnaryOperator;
-} | {
-    type: "Binary";
-    operator: BinaryOperator;
-} | {
-    type: "ToBool";
-} | {
-    type: "CallGlobal";
-    name: string;
-    argc: number;
-} | {
-    type: "CallMethod";
-    name: string;
-    argc: number;
-} | {
-    type: "Jump";
-    offset: number;
-} | {
-    type: "JumpIfFalse";
-    offset: number;
-} | {
-    type: "JumpIfTrue";
-    offset: number;
-};
+type Instruction =
+  | {
+      type: "Const";
+      value: LiteralValue | undefined;
+    }
+  | {
+      type: "Ident";
+      name: string;
+    }
+  | {
+      type: "LoadFormula";
+      name: string;
+    }
+  | {
+      type: "Member";
+      name: string;
+    }
+  | {
+      type: "Index";
+    }
+  | {
+      type: "List";
+      count: number;
+    }
+  | {
+      type: "Unary";
+      operator: UnaryOperator;
+    }
+  | {
+      type: "Binary";
+      operator: BinaryOperator;
+    }
+  | {
+      type: "ToBool";
+    }
+  | {
+      type: "CallGlobal";
+      name: string;
+      argc: number;
+    }
+  | {
+      type: "CallMethod";
+      name: string;
+      argc: number;
+    }
+  | {
+      type: "Jump";
+      offset: number;
+    }
+  | {
+      type: "JumpIfFalse";
+      offset: number;
+    }
+  | {
+      type: "JumpIfTrue";
+      offset: number;
+    };
 
 type EvalContext = {
-    note: Record<string, unknown>;
-    file: {
-        name: string;
-        path: string;
-        folder: string;
-        ext: string;
-        tags: string[];
-        links: string[];
-        created?: string;
-        modified?: string;
-    };
-    formula: Record<string, unknown>;
+  note: Record<string, unknown>;
+  file: {
+    name: string;
+    path: string;
+    folder: string;
+    ext: string;
+    tags: string[];
+    links: string[];
+    created?: string;
+    modified?: string;
+  };
+  formula: Record<string, unknown>;
 };
 declare function resolvePropertyValue(path: string, context: EvalContext): unknown;
 
 type CompiledExpression = {
-    ast: Expression;
-    instructions: Instruction[];
+  ast: Expression;
+  instructions: Instruction[];
 };
 
 declare function compile(expression: string): CompiledExpression;
 declare function evaluate(expression: string, context: EvalContext): unknown;
 declare function evaluateFilter(node: FilterNode | undefined, context: EvalContext): boolean;
 
-export { type CompiledExpression, type EvalContext, compile, evaluate, evaluateFilter, resolvePropertyValue };
+export {
+  type CompiledExpression,
+  type EvalContext,
+  compile,
+  evaluate,
+  evaluateFilter,
+  resolvePropertyValue,
+};
