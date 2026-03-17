@@ -1,14 +1,17 @@
-import { BasesBody_default, resolveBasesEntries, registerBuiltinViews, i18n, ViewSelector } from './chunk-IJYBZIBL.js';
-export { BasesBody_default as BasesBody } from './chunk-IJYBZIBL.js';
-import { registerCustomViews, viewRegistry } from './chunk-LHVPD2IS.js';
-export { registerCustomViews, viewRegistry } from './chunk-LHVPD2IS.js';
-export { compile, evaluate, evaluateFilter, resolvePropertyValue } from './chunk-RBP2NPYV.js';
-import { __commonJS, __require, __export, __toESM } from './chunk-PR4QN5HX.js';
+import { createRequire } from 'module';
+import { BasesBody_default, resolveBasesEntries, registerBuiltinViews, i18n, ViewSelector } from './chunk-7FJJQYZV.js';
+export { BasesBody_default as BasesBody } from './chunk-7FJJQYZV.js';
+import { registerCustomViews, viewRegistry } from './chunk-2AUMER56.js';
+export { registerCustomViews, viewRegistry } from './chunk-2AUMER56.js';
+export { compile, evaluate, evaluateFilter, resolvePropertyValue } from './chunk-46L5AVFM.js';
+import { __commonJS, __require, __export, __toESM } from './chunk-TDUJOYTU.js';
 import { h as h$1, Fragment, options } from 'preact';
 import { VFile } from 'vfile';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 export { transformLink } from '@quartz-community/utils';
+
+createRequire(import.meta.url);
 
 // node_modules/yaml/dist/nodes/identity.js
 var require_identity = __commonJS({

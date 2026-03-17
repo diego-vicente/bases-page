@@ -1,7 +1,9 @@
-import { viewRegistry, registerCustomViews } from './chunk-LHVPD2IS.js';
-import { evaluate, evaluateFilter, resolvePropertyValue } from './chunk-RBP2NPYV.js';
+import { createRequire } from 'module';
+import { viewRegistry, registerCustomViews } from './chunk-2AUMER56.js';
+import { evaluate, evaluateFilter, resolvePropertyValue } from './chunk-46L5AVFM.js';
 import { jsx, jsxs, Fragment } from 'preact/jsx-runtime';
 
+createRequire(import.meta.url);
 function ViewSelector({ views, activeIndex }) {
   if (views.length <= 1) return null;
   return /* @__PURE__ */ jsx("div", { class: "bases-view-tabs", role: "tablist", children: views.map((view, index) => /* @__PURE__ */ jsx(
@@ -690,5 +692,5 @@ var BasesBody_default = ((opts) => {
 });
 
 export { BasesBody_default, ViewSelector, i18n, registerBuiltinViews, resolveBasesEntries };
-//# sourceMappingURL=chunk-IJYBZIBL.js.map
-//# sourceMappingURL=chunk-IJYBZIBL.js.map
+//# sourceMappingURL=chunk-7FJJQYZV.js.map
+//# sourceMappingURL=chunk-7FJJQYZV.js.map

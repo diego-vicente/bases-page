@@ -1,3 +1,7 @@
+import { createRequire } from 'module';
+
+createRequire(import.meta.url);
+
 // src/compiler/errors.ts
 var CompilerError = class extends Error {
   span;
@@ -1347,5 +1351,5 @@ function evaluateFilter(node, context) {
 }
 
 export { compile, evaluate, evaluateFilter, resolvePropertyValue };
-//# sourceMappingURL=chunk-RBP2NPYV.js.map
-//# sourceMappingURL=chunk-RBP2NPYV.js.map
+//# sourceMappingURL=chunk-46L5AVFM.js.map
+//# sourceMappingURL=chunk-46L5AVFM.js.map

@@ -1,13 +1,16 @@
+import { createRequire } from 'module';
+
+const require$1 = createRequire(import.meta.url);
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
-  get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
+var __require = /* @__PURE__ */ ((x) => typeof require$1 !== "undefined" ? require$1 : typeof Proxy !== "undefined" ? new Proxy(x, {
+  get: (a, b) => (typeof require$1 !== "undefined" ? require$1 : a)[b]
 }) : x)(function(x) {
-  if (typeof require !== "undefined") return require.apply(this, arguments);
+  if (typeof require$1 !== "undefined") return require$1.apply(this, arguments);
   throw Error('Dynamic require of "' + x + '" is not supported');
 });
 var __commonJS = (cb, mod) => function __require2() {
@@ -35,5 +38,5 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 ));
 
 export { __commonJS, __export, __require, __toESM };
-//# sourceMappingURL=chunk-PR4QN5HX.js.map
-//# sourceMappingURL=chunk-PR4QN5HX.js.map
+//# sourceMappingURL=chunk-TDUJOYTU.js.map
+//# sourceMappingURL=chunk-TDUJOYTU.js.map

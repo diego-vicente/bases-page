@@ -1,3 +1,7 @@
+import { createRequire } from 'module';
+
+createRequire(import.meta.url);
+
 // src/registry.ts
 var REGISTRY_KEY = /* @__PURE__ */ Symbol.for("@quartz-community/bases-page/viewRegistry");
 var ViewRegistry = class {
@@ -36,5 +40,5 @@ function registerCustomViews(customs) {
 }
 
 export { registerCustomViews, viewRegistry };
-//# sourceMappingURL=chunk-LHVPD2IS.js.map
-//# sourceMappingURL=chunk-LHVPD2IS.js.map
+//# sourceMappingURL=chunk-2AUMER56.js.map
+//# sourceMappingURL=chunk-2AUMER56.js.map
