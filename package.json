@@ -62,10 +62,7 @@
   "peerDependencies": {
     "@jackyzha0/quartz": "^5.0.0",
     "preact": "^10.0.0",
-    "preact-render-to-string": "^6.6.6",
-    "unist-util-visit": "^5.1.0",
-    "vfile": "^6.0.3",
-    "yaml": "^2.8.1"
+    "vfile": "^6.0.3"
   },
   "peerDependenciesMeta": {
     "@jackyzha0/quartz": {
@@ -74,23 +71,13 @@
     "preact": {
       "optional": false
     },
-    "preact-render-to-string": {
-      "optional": true
-    },
-    "unist-util-visit": {
-      "optional": true
-    },
     "vfile": {
-      "optional": true
-    },
-    "yaml": {
       "optional": true
     }
   },
   "dependencies": {
     "@quartz-community/types": "github:quartz-community/types",
-    "@quartz-community/utils": "github:quartz-community/utils",
-    "hast-util-from-html": "^2.0.3"
+    "@quartz-community/utils": "github:quartz-community/utils"
   },
   "devDependencies": {
     "@types/hast": "^3.0.4",
@@ -101,6 +88,7 @@
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "github-slugger": "^2.0.0",
+    "hast-util-from-html": "^2.0.3",
     "hast-util-to-jsx-runtime": "^2.3.6",
     "preact": "^10.28.2",
     "preact-render-to-string": "^6.6.6",

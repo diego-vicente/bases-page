@@ -1,35 +1,12 @@
-import { QuartzPageTypePlugin, QuartzTransformerPlugin } from "@quartz-community/types";
-export {
-  PageGenerator,
-  PageMatcher,
-  QuartzComponent,
-  QuartzComponentConstructor,
-  QuartzComponentProps,
-  QuartzPageTypePlugin,
-  QuartzPageTypePluginInstance,
-  QuartzTransformerPlugin,
-  QuartzTransformerPluginInstance,
-  TreeTransform,
-  VirtualPage,
-} from "@quartz-community/types";
-import { BasesPageOptions, BasesData } from "./types.js";
-export {
-  BasesEntry,
-  BasesView,
-  FilterNode,
-  GroupBy,
-  PropertyConfig,
-  SortDirection,
-  SummaryType,
-  ViewRenderer,
-  ViewRendererProps,
-  ViewTypeRegistration,
-} from "./types.js";
-export { _ as BasesBody } from "./BasesBody-B4CEJjEp.js";
-export { registerCustomViews, viewRegistry } from "./registry.js";
-export { compile, evaluate, evaluateFilter, resolvePropertyValue } from "./compiler/index.js";
-export { FullSlug, RelativeURL, TransformOptions, transformLink } from "@quartz-community/utils";
-import "preact";
+import { QuartzPageTypePlugin, QuartzTransformerPlugin } from '@quartz-community/types';
+export { PageGenerator, PageMatcher, QuartzComponent, QuartzComponentConstructor, QuartzComponentProps, QuartzPageTypePlugin, QuartzPageTypePluginInstance, QuartzTransformerPlugin, QuartzTransformerPluginInstance, TreeTransform, VirtualPage } from '@quartz-community/types';
+import { BasesPageOptions, BasesData } from './types.js';
+export { BasesEntry, BasesView, FilterNode, GroupBy, PropertyConfig, SortDirection, SummaryType, ViewRenderer, ViewRendererProps, ViewTypeRegistration } from './types.js';
+export { _ as BasesBody } from './BasesBody-B4CEJjEp.js';
+export { registerCustomViews, viewRegistry } from './registry.js';
+export { compile, evaluate, evaluateFilter, resolvePropertyValue } from './compiler/index.js';
+export { FullSlug, RelativeURL, TransformOptions, transformLink } from '@quartz-community/utils';
+import 'preact';
 
 declare const BasesPage: QuartzPageTypePlugin<BasesPageOptions>;
 
@@ -47,9 +24,9 @@ declare const BasesPage: QuartzPageTypePlugin<BasesPageOptions>;
  */
 declare const BasesTransformer: QuartzTransformerPlugin<Partial<BasesPageOptions>>;
 declare module "vfile" {
-  interface DataMap {
-    basesBlocks?: BasesData[];
-  }
+    interface DataMap {
+        basesBlocks?: BasesData[];
+    }
 }
 
 export { BasesData, BasesPage, BasesPageOptions, BasesTransformer };

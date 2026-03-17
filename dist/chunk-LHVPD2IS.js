@@ -28,7 +28,7 @@ var ViewRegistry = class {
   }
 };
 var g = globalThis;
-var viewRegistry = (g[REGISTRY_KEY] ??= new ViewRegistry());
+var viewRegistry = g[REGISTRY_KEY] ??= new ViewRegistry();
 function registerCustomViews(customs) {
   for (const [id, render] of Object.entries(customs)) {
     viewRegistry.register({ id, name: id, render });
