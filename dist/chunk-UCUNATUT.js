@@ -340,7 +340,7 @@ function formatMessage(template, values) {
     template
   );
 }
-var BoardView = ({ entries, view, basesData, total, locale }) => {
+var BoardView = ({ entries, view, basesData, total, locale, slug }) => {
   const localeStrings = i18n(locale).components.bases;
   const groupProperty = view.groupBy?.property ?? view.boardProperty;
   const columns = getColumns(view, basesData, entries).filter((column) => column !== groupProperty);
@@ -373,7 +373,15 @@ var BoardView = ({ entries, view, basesData, total, locale }) => {
       /* @__PURE__ */ jsx("div", { class: "bases-board-column-body", children: group.entries.map((entry) => {
         const ctx = { slug: entry.slug };
         return /* @__PURE__ */ jsxs("div", { class: "bases-board-card", children: [
-          /* @__PURE__ */ jsx("a", { href: `/${entry.slug}`, class: "internal", "data-slug": entry.slug, children: entry.title }),
+          /* @__PURE__ */ jsx(
+            "a",
+            {
+              href: resolveRelative(slug, entry.slug),
+              class: "internal",
+              "data-slug": entry.slug,
+              children: entry.title
+            }
+          ),
           columns.length > 0 && /* @__PURE__ */ jsx("div", { class: "bases-board-card-meta", children: columns.map((column) => {
             const value = resolveEntryPropertyValue(column, entry);
             if (isEmptyValue(value)) return null;
@@ -399,7 +407,7 @@ function formatMessage2(template, values) {
     template
   );
 }
-var CardsView = ({ entries, view, basesData, total, locale }) => {
+var CardsView = ({ entries, view, basesData, total, locale, slug }) => {
   const imageProperty = typeof view.image === "string" ? view.image : void 0;
   const columns = getColumns(view, basesData, entries).filter((column) => column !== imageProperty);
   const localeStrings = i18n(locale).components.bases;
@@ -419,7 +427,7 @@ var CardsView = ({ entries, view, basesData, total, locale }) => {
       return /* @__PURE__ */ jsxs("div", { class: "bases-card", children: [
         imageSrc && /* @__PURE__ */ jsx("div", { class: "bases-card-image", style: imageStyle, children: /* @__PURE__ */ jsx("img", { src: imageSrc, alt: entry.title, loading: "lazy" }) }),
         /* @__PURE__ */ jsxs("div", { class: "bases-card-body", children: [
-          /* @__PURE__ */ jsx("a", { href: `/${entry.slug}`, class: "internal", "data-slug": entry.slug, children: entry.title }),
+          /* @__PURE__ */ jsx("a", { href: resolveRelative(slug, entry.slug), class: "internal", "data-slug": entry.slug, children: entry.title }),
           /* @__PURE__ */ jsx("div", { class: "bases-card-meta", children: columns.map((column) => {
             const value = resolveEntryPropertyValue(column, entry);
             if (isEmptyValue(value)) return null;
@@ -445,7 +453,7 @@ function formatMessage3(template, values) {
     template
   );
 }
-var GalleryView = ({ entries, view, total, locale }) => {
+var GalleryView = ({ entries, view, total, locale, slug }) => {
   const imageProperty = typeof view.image === "string" ? view.image : void 0;
   const localeStrings = i18n(locale).components.bases;
   const columns = typeof view.cardSize === "number" && view.cardSize > 0 ? Math.round(view.cardSize) : 3;
@@ -467,7 +475,7 @@ var GalleryView = ({ entries, view, total, locale }) => {
             "aria-label": localeStrings.noImage
           }
         ) }),
-        /* @__PURE__ */ jsx("div", { class: "bases-gallery-title", children: /* @__PURE__ */ jsx("a", { href: `/${entry.slug}`, class: "internal", "data-slug": entry.slug, children: entry.title }) })
+        /* @__PURE__ */ jsx("div", { class: "bases-gallery-title", children: /* @__PURE__ */ jsx("a", { href: resolveRelative(slug, entry.slug), class: "internal", "data-slug": entry.slug, children: entry.title }) })
       ] });
     }) })
   ] });
@@ -484,7 +492,7 @@ function formatMessage4(template, values) {
     template
   );
 }
-var ListView = ({ entries, view, basesData, total, locale }) => {
+var ListView = ({ entries, view, basesData, total, locale, slug }) => {
   const columns = getColumns(view, basesData, entries);
   const localeStrings = i18n(locale).components.bases;
   return /* @__PURE__ */ jsxs("div", { class: "bases-list-wrapper", children: [
@@ -495,7 +503,7 @@ var ListView = ({ entries, view, basesData, total, locale }) => {
     /* @__PURE__ */ jsx("ul", { class: "bases-list", children: entries.map((entry) => {
       const ctx = { slug: entry.slug };
       return /* @__PURE__ */ jsxs("li", { class: "bases-list-item", children: [
-        /* @__PURE__ */ jsx("a", { href: `/${entry.slug}`, class: "internal", "data-slug": entry.slug, children: entry.title }),
+        /* @__PURE__ */ jsx("a", { href: resolveRelative(slug, entry.slug), class: "internal", "data-slug": entry.slug, children: entry.title }),
         columns.length > 1 && /* @__PURE__ */ jsx("div", { class: "bases-list-meta", children: columns.slice(1).map((column) => {
           const value = resolveEntryPropertyValue(column, entry);
           if (isEmptyValue(value)) return null;
@@ -553,7 +561,7 @@ function formatMessage5(template, values) {
     template
   );
 }
-var TableView = ({ entries, view, basesData, total, locale }) => {
+var TableView = ({ entries, view, basesData, total, locale, slug }) => {
   const columns = getColumns(view, basesData, entries);
   const summaries = view.summaries ?? {};
   const hasSummary = Object.keys(summaries).length > 0;
@@ -580,7 +588,15 @@ var TableView = ({ entries, view, basesData, total, locale }) => {
           const isPrimary = column === "file.name" || column === "title";
           const columnWidth = view.columnSize?.[column];
           const style = columnWidth ? { width: `${columnWidth}px`, minWidth: `${columnWidth}px` } : void 0;
-          return /* @__PURE__ */ jsx("td", { "data-value": display, style, children: isPrimary ? /* @__PURE__ */ jsx("a", { href: `/${entry.slug}`, class: "internal", "data-slug": entry.slug, children: display || entry.title }) : renderCellValue(value, ctx) });
+          return /* @__PURE__ */ jsx("td", { "data-value": display, style, children: isPrimary ? /* @__PURE__ */ jsx(
+            "a",
+            {
+              href: resolveRelative(slug, entry.slug),
+              class: "internal",
+              "data-slug": entry.slug,
+              children: display || entry.title
+            }
+          ) : renderCellValue(value, ctx) });
         }) });
       }) }),
       hasSummary && /* @__PURE__ */ jsx("tfoot", { children: /* @__PURE__ */ jsx("tr", { class: "bases-summary-row", children: columns.map((column) => {
@@ -692,5 +708,5 @@ var BasesBody_default = ((opts) => {
 });
 
 export { BasesBody_default, ViewSelector, i18n, registerBuiltinViews, resolveBasesEntries };
-//# sourceMappingURL=chunk-7FJJQYZV.js.map
-//# sourceMappingURL=chunk-7FJJQYZV.js.map
+//# sourceMappingURL=chunk-UCUNATUT.js.map
+//# sourceMappingURL=chunk-UCUNATUT.js.map

@@ -7,6 +7,7 @@ import {
   renderCellValue,
   resolveEntryPropertyValue,
 } from "../shared/cell";
+import { resolveRelative } from "../../util/path";
 
 function formatMessage(template: string, values: Record<string, string | number>): string {
   return Object.entries(values).reduce(
@@ -15,7 +16,7 @@ function formatMessage(template: string, values: Record<string, string | number>
   );
 }
 
-const CardsView: ViewRenderer = ({ entries, view, basesData, total, locale }) => {
+const CardsView: ViewRenderer = ({ entries, view, basesData, total, locale, slug }) => {
   const imageProperty = typeof view.image === "string" ? view.image : undefined;
   const columns = getColumns(view, basesData, entries).filter((column) => column !== imageProperty);
   const localeStrings = i18n(locale).components.bases;
@@ -53,7 +54,7 @@ const CardsView: ViewRenderer = ({ entries, view, basesData, total, locale }) =>
                 </div>
               )}
               <div class="bases-card-body">
-                <a href={`/${entry.slug}`} class="internal" data-slug={entry.slug}>
+                <a href={resolveRelative(slug, entry.slug)} class="internal" data-slug={entry.slug}>
                   {entry.title}
                 </a>
                 <div class="bases-card-meta">

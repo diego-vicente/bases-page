@@ -1,6 +1,7 @@
 import type { ViewRenderer, ViewTypeRegistration } from "../../types";
 import { i18n } from "../../i18n";
 import { resolveEntryPropertyValue } from "../shared/cell";
+import { resolveRelative } from "../../util/path";
 
 function formatMessage(template: string, values: Record<string, string | number>): string {
   return Object.entries(values).reduce(
@@ -9,7 +10,7 @@ function formatMessage(template: string, values: Record<string, string | number>
   );
 }
 
-const GalleryView: ViewRenderer = ({ entries, view, total, locale }) => {
+const GalleryView: ViewRenderer = ({ entries, view, total, locale, slug }) => {
   const imageProperty = typeof view.image === "string" ? view.image : undefined;
   const localeStrings = i18n(locale).components.bases;
   const columns =
@@ -44,7 +45,7 @@ const GalleryView: ViewRenderer = ({ entries, view, total, locale }) => {
                 )}
               </div>
               <div class="bases-gallery-title">
-                <a href={`/${entry.slug}`} class="internal" data-slug={entry.slug}>
+                <a href={resolveRelative(slug, entry.slug)} class="internal" data-slug={entry.slug}>
                   {entry.title}
                 </a>
               </div>

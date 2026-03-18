@@ -8,6 +8,7 @@ import {
   renderCellValue,
   resolveEntryPropertyValue,
 } from "../shared/cell";
+import { resolveRelative } from "../../util/path";
 
 function formatMessage(template: string, values: Record<string, string | number>): string {
   return Object.entries(values).reduce(
@@ -16,7 +17,7 @@ function formatMessage(template: string, values: Record<string, string | number>
   );
 }
 
-const BoardView: ViewRenderer = ({ entries, view, basesData, total, locale }) => {
+const BoardView: ViewRenderer = ({ entries, view, basesData, total, locale, slug }) => {
   const localeStrings = i18n(locale).components.bases;
   const groupProperty = view.groupBy?.property ?? view.boardProperty;
   const columns = getColumns(view, basesData, entries).filter((column) => column !== groupProperty);
@@ -59,7 +60,11 @@ const BoardView: ViewRenderer = ({ entries, view, basesData, total, locale }) =>
                 const ctx = { slug: entry.slug };
                 return (
                   <div class="bases-board-card">
-                    <a href={`/${entry.slug}`} class="internal" data-slug={entry.slug}>
+                    <a
+                      href={resolveRelative(slug, entry.slug)}
+                      class="internal"
+                      data-slug={entry.slug}
+                    >
                       {entry.title}
                     </a>
                     {columns.length > 0 && (

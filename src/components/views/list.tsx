@@ -7,6 +7,7 @@ import {
   renderCellValue,
   resolveEntryPropertyValue,
 } from "../shared/cell";
+import { resolveRelative } from "../../util/path";
 
 function formatMessage(template: string, values: Record<string, string | number>): string {
   return Object.entries(values).reduce(
@@ -15,7 +16,7 @@ function formatMessage(template: string, values: Record<string, string | number>
   );
 }
 
-const ListView: ViewRenderer = ({ entries, view, basesData, total, locale }) => {
+const ListView: ViewRenderer = ({ entries, view, basesData, total, locale, slug }) => {
   const columns = getColumns(view, basesData, entries);
   const localeStrings = i18n(locale).components.bases;
 
@@ -32,7 +33,7 @@ const ListView: ViewRenderer = ({ entries, view, basesData, total, locale }) => 
           const ctx = { slug: entry.slug };
           return (
             <li class="bases-list-item">
-              <a href={`/${entry.slug}`} class="internal" data-slug={entry.slug}>
+              <a href={resolveRelative(slug, entry.slug)} class="internal" data-slug={entry.slug}>
                 {entry.title}
               </a>
               {columns.length > 1 && (

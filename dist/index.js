@@ -1,6 +1,6 @@
 import { createRequire } from 'module';
-import { BasesBody_default, resolveBasesEntries, registerBuiltinViews, i18n, ViewSelector } from './chunk-7FJJQYZV.js';
-export { BasesBody_default as BasesBody } from './chunk-7FJJQYZV.js';
+import { BasesBody_default, resolveBasesEntries, registerBuiltinViews, i18n, ViewSelector } from './chunk-UCUNATUT.js';
+export { BasesBody_default as BasesBody } from './chunk-UCUNATUT.js';
 import { registerCustomViews, viewRegistry } from './chunk-2AUMER56.js';
 export { registerCustomViews, viewRegistry } from './chunk-2AUMER56.js';
 export { compile, evaluate, evaluateFilter, resolvePropertyValue } from './chunk-46L5AVFM.js';

@@ -8,6 +8,7 @@ import {
   resolveEntryPropertyValue,
 } from "../shared/cell";
 import { computeSummary } from "../shared/summary";
+import { resolveRelative } from "../../util/path";
 
 function formatMessage(template: string, values: Record<string, string | number>): string {
   return Object.entries(values).reduce(
@@ -16,7 +17,7 @@ function formatMessage(template: string, values: Record<string, string | number>
   );
 }
 
-const TableView: ViewRenderer = ({ entries, view, basesData, total, locale }) => {
+const TableView: ViewRenderer = ({ entries, view, basesData, total, locale, slug }) => {
   const columns = getColumns(view, basesData, entries);
   const summaries = view.summaries ?? {};
   const hasSummary = Object.keys(summaries).length > 0;
@@ -63,7 +64,11 @@ const TableView: ViewRenderer = ({ entries, view, basesData, total, locale }) =>
                   return (
                     <td data-value={display} style={style}>
                       {isPrimary ? (
-                        <a href={`/${entry.slug}`} class="internal" data-slug={entry.slug}>
+                        <a
+                          href={resolveRelative(slug, entry.slug)}
+                          class="internal"
+                          data-slug={entry.slug}
+                        >
                           {display || entry.title}
                         </a>
                       ) : (
