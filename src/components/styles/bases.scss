@@ -166,36 +166,49 @@ th.is-sorted-desc .bases-sort-indicator {
 }
 
 .bases-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.bases-list-group {
+  width: 100%;
+}
+
+.bases-list-group-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
 }
 
 .bases-list-item {
-  padding: 12px;
-  border: 1px solid var(--lightgray);
-  border-radius: 8px;
-  background: var(--light);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  padding: 2px 0;
 }
 
-.bases-list-meta {
+.bases-list-item-properties {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  align-items: baseline;
+  gap: 0;
 }
 
-.bases-list-chip {
-  background: var(--lightgray);
+.bases-list-property {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.list-bullet {
   color: var(--darkgray);
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 0.75rem;
+  user-select: none;
+}
+
+.bases-list-separator {
+  color: var(--gray);
+  margin-right: 4px;
+}
+
+.bases-rendered-value {
+  display: inline;
 }
 
 .bases-cards {

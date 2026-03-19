@@ -1,7 +1,7 @@
+import type { ComponentChild } from "preact";
 import type { ViewRenderer, ViewTypeRegistration } from "../../types";
 import { i18n } from "../../i18n";
 import {
-  getColumnLabel,
   getColumns,
   isEmptyValue,
   renderCellValue,
@@ -28,31 +28,52 @@ const ListView: ViewRenderer = ({ entries, view, basesData, total, locale, slug 
           total,
         })}
       </div>
-      <ul class="bases-list">
-        {entries.map((entry) => {
-          const ctx = { slug: entry.slug };
-          return (
-            <li class="bases-list-item">
-              <a href={resolveRelative(slug, entry.slug)} class="internal" data-slug={entry.slug}>
-                {entry.title}
-              </a>
-              {columns.length > 1 && (
-                <div class="bases-list-meta">
-                  {columns.slice(1).map((column) => {
-                    const value = resolveEntryPropertyValue(column, entry);
-                    if (isEmptyValue(value)) return null;
-                    return (
-                      <span class="bases-list-chip">
-                        {getColumnLabel(column, basesData)}: {renderCellValue(value, ctx)}
-                      </span>
-                    );
-                  })}
+      <div class="bases-list-group">
+        <div class="bases-list-group-list">
+          {entries.map((entry) => {
+            const ctx = { slug: entry.slug };
+            const primaryColumn = columns[0] ?? "file.name";
+            const secondaryColumns = columns.slice(1);
+
+            const primaryValue: ComponentChild =
+              primaryColumn === "file.name" ? (
+                <a href={resolveRelative(slug, entry.slug)} class="internal" data-slug={entry.slug}>
+                  {entry.title}
+                </a>
+              ) : (
+                renderCellValue(resolveEntryPropertyValue(primaryColumn, entry), ctx)
+              );
+
+            const secondaryItems: ComponentChild[] = [];
+            for (const column of secondaryColumns) {
+              const value = resolveEntryPropertyValue(column, entry);
+              if (isEmptyValue(value)) continue;
+              secondaryItems.push(
+                <span class="bases-list-property">
+                  <span class="bases-rendered-value">{renderCellValue(value, ctx)}</span>
+                </span>,
+              );
+            }
+
+            return (
+              <div class="bases-list-item">
+                <div class="bases-list-item-properties">
+                  <span class="bases-list-property">
+                    <span class="list-bullet">-</span>
+                    <span class="bases-rendered-value">{primaryValue}</span>
+                  </span>
+                  {secondaryItems.map((item) => (
+                    <>
+                      <span class="bases-list-separator">, </span>
+                      {item}
+                    </>
+                  ))}
                 </div>
-              )}
-            </li>
-          );
-        })}
-      </ul>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 };
