@@ -1,6 +1,6 @@
 import { createRequire } from 'module';
-import { BasesBody_default, resolveBasesEntries, registerBuiltinViews, i18n, ViewSelector } from './chunk-VZFVKCS7.js';
-export { BasesBody_default as BasesBody } from './chunk-VZFVKCS7.js';
+import { BasesBody_default, resolveBasesEntries, registerBuiltinViews, i18n, ViewSelector } from './chunk-56OUEGRV.js';
+export { BasesBody_default as BasesBody } from './chunk-56OUEGRV.js';
 import { registerCustomViews, viewRegistry } from './chunk-2AUMER56.js';
 export { registerCustomViews, viewRegistry } from './chunk-2AUMER56.js';
 export { compile, evaluate, evaluateFilter, resolvePropertyValue } from './chunk-BUL4PXPV.js';
@@ -18013,6 +18013,25 @@ var BasesTransformer = (_opts) => {
     name: "BasesTransformer",
     htmlPlugins() {
       return [
+        // Plugin 1: Extract embed targets from transclusion blockquotes.
+        // OFM converts ![[...]] embeds to <blockquote class="transclude" data-url="...">.
+        // We collect those URLs and store them on file.data.embeds so the resolver
+        // can populate file.embeds in the EvalContext.
+        () => {
+          return (tree, file) => {
+            const embeds = [];
+            visit(tree, "element", (node) => {
+              if (node.tagName !== "blockquote") return;
+              const classes = node.properties?.className ?? [];
+              if (!classes.includes("transclude")) return;
+              const url = node.properties?.dataUrl;
+              if (url) embeds.push(url);
+            });
+            if (embeds.length > 0) {
+              file.data.embeds = embeds;
+            }
+          };
+        },
         () => {
           return (tree, file) => {
             const basesBlocks = [];

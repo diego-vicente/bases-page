@@ -2,8 +2,27 @@ import type { ComponentChild } from "preact";
 
 import type { BasesData, BasesEntry, BasesView } from "../../types";
 import { renderTextWithLinks } from "./links";
+import { resolveRelative } from "../../util/path";
 
 type RenderCtx = { slug: string };
+
+/**
+ * Detect file objects returned by asFile() in the expression engine.
+ * These have a specific shape: {name, basename, path, folder, ext, tags, links}.
+ */
+function isFileValue(
+  value: unknown,
+): value is { name: string; basename: string; path: string; folder: string; ext: string } {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.name === "string" &&
+    typeof record.basename === "string" &&
+    typeof record.path === "string" &&
+    typeof record.folder === "string" &&
+    typeof record.ext === "string"
+  );
+}
 
 export function formatValue(value: unknown): string {
   if (value === undefined || value === null) return "";
@@ -41,6 +60,14 @@ export function renderCellValue(value: unknown, ctx: RenderCtx): ComponentChild 
   }
 
   if (typeof value === "object") {
+    if (isFileValue(value)) {
+      const href = resolveRelative(ctx.slug, value.path.replace(/\.md$/, ""));
+      return (
+        <a href={href} class="internal">
+          {value.basename}
+        </a>
+      );
+    }
     return <code>{JSON.stringify(value)}</code>;
   }
 

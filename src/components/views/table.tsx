@@ -78,6 +78,7 @@ const TableView: ViewRenderer = ({ entries, view, basesData, total, locale, slug
   const hasSummary = Object.keys(summaries).length > 0;
   const localeStrings = i18n(locale).components.bases;
   const groupProperty = view.groupBy?.property;
+  const groupPropertyLabel = groupProperty ? getColumnLabel(groupProperty, basesData) : "";
   const groups = groupEntries(entries, groupProperty, localeStrings.uncategorized);
 
   return (
@@ -111,6 +112,9 @@ const TableView: ViewRenderer = ({ entries, view, basesData, total, locale, slug
                 <>
                   <tr class="bases-table-group-header">
                     <td colSpan={columns.length}>
+                      {groupPropertyLabel && (
+                        <span class="bases-table-group-property">{groupPropertyLabel} </span>
+                      )}
                       <span class="bases-table-group-label">{label}</span>
                       <span class="bases-table-group-count">{groupEntries.length}</span>
                     </td>

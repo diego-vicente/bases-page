@@ -22,6 +22,25 @@ export const BasesTransformer: QuartzTransformerPlugin<Partial<BasesPageOptions>
     name: "BasesTransformer",
     htmlPlugins() {
       return [
+        // Plugin 1: Extract embed targets from transclusion blockquotes.
+        // OFM converts ![[...]] embeds to <blockquote class="transclude" data-url="...">.
+        // We collect those URLs and store them on file.data.embeds so the resolver
+        // can populate file.embeds in the EvalContext.
+        () => {
+          return (tree: HTMLRoot, file: VFile) => {
+            const embeds: string[] = [];
+            visit(tree, "element", (node: Element) => {
+              if (node.tagName !== "blockquote") return;
+              const classes = (node.properties?.className ?? []) as string[];
+              if (!classes.includes("transclude")) return;
+              const url = node.properties?.dataUrl as string | undefined;
+              if (url) embeds.push(url);
+            });
+            if (embeds.length > 0) {
+              file.data.embeds = embeds;
+            }
+          };
+        },
         () => {
           return (tree: HTMLRoot, file: VFile) => {
             const basesBlocks: BasesData[] = [];
@@ -182,5 +201,6 @@ function extractText(node: Element): string {
 declare module "vfile" {
   interface DataMap {
     basesBlocks?: BasesData[];
+    embeds?: string[];
   }
 }

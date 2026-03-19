@@ -26,6 +26,7 @@ declare const BasesTransformer: QuartzTransformerPlugin<Partial<BasesPageOptions
 declare module "vfile" {
     interface DataMap {
         basesBlocks?: BasesData[];
+        embeds?: string[];
     }
 }
 
