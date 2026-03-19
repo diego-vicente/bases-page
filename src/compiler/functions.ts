@@ -650,9 +650,19 @@ registerMethodFunction("string", "title", (target) => {
   return value.replace(/\b\w/g, (ch) => ch.toUpperCase());
 });
 
-registerMethodFunction("string", "asFile", (target) => {
+registerMethodFunction("string", "asFile", (target, _args, context) => {
   const path = toStringValue(target);
   if (!path) return undefined;
+  const lookup = context._fileLookup;
+  if (lookup) {
+    // Try exact path first, then with/without .md extension
+    const normalized = path.trim();
+    const found =
+      lookup.get(normalized) ??
+      lookup.get(normalized.replace(/\.md$/, "")) ??
+      (!normalized.endsWith(".md") ? lookup.get(`${normalized}.md`) : undefined);
+    if (found) return { ...found };
+  }
   return buildFileValue(path);
 });
 

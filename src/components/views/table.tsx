@@ -1,9 +1,10 @@
-import type { ViewRenderer, ViewTypeRegistration } from "../../types";
+import type { BasesEntry, ViewRenderer, ViewTypeRegistration } from "../../types";
 import { i18n } from "../../i18n";
 import {
   formatValue,
   getColumnLabel,
   getColumns,
+  isEmptyValue,
   renderCellValue,
   resolveEntryPropertyValue,
 } from "../shared/cell";
@@ -17,11 +18,67 @@ function formatMessage(template: string, values: Record<string, string | number>
   );
 }
 
+function groupEntries(
+  entries: BasesEntry[],
+  groupProperty: string | undefined,
+  emptyLabel: string,
+): Map<string, BasesEntry[]> | null {
+  if (!groupProperty) return null;
+  const groups = new Map<string, BasesEntry[]>();
+  for (const entry of entries) {
+    const rawValue = resolveEntryPropertyValue(groupProperty, entry);
+    const label = isEmptyValue(rawValue) ? emptyLabel : formatValue(rawValue);
+    const key = label || emptyLabel;
+    const existing = groups.get(key);
+    if (existing) {
+      existing.push(entry);
+    } else {
+      groups.set(key, [entry]);
+    }
+  }
+  return groups.size > 0 ? groups : null;
+}
+
+function renderRow(
+  entry: BasesEntry,
+  columns: string[],
+  view: Parameters<ViewRenderer>[0]["view"],
+  slug: string,
+) {
+  const ctx = { slug: entry.slug };
+  return (
+    <tr>
+      {columns.map((column) => {
+        const value = resolveEntryPropertyValue(column, entry);
+        const display = formatValue(value);
+        const isPrimary = column === "file.name" || column === "title";
+        const columnWidth = view.columnSize?.[column];
+        const style = columnWidth
+          ? { width: `${columnWidth}px`, minWidth: `${columnWidth}px` }
+          : undefined;
+        return (
+          <td data-value={display} style={style}>
+            {isPrimary ? (
+              <a href={resolveRelative(slug, entry.slug)} class="internal" data-slug={entry.slug}>
+                {display || entry.title}
+              </a>
+            ) : (
+              renderCellValue(value, ctx)
+            )}
+          </td>
+        );
+      })}
+    </tr>
+  );
+}
+
 const TableView: ViewRenderer = ({ entries, view, basesData, total, locale, slug }) => {
   const columns = getColumns(view, basesData, entries);
   const summaries = view.summaries ?? {};
   const hasSummary = Object.keys(summaries).length > 0;
   const localeStrings = i18n(locale).components.bases;
+  const groupProperty = view.groupBy?.property;
+  const groups = groupEntries(entries, groupProperty, localeStrings.uncategorized);
 
   return (
     <div class="bases-table-wrapper">
@@ -49,37 +106,19 @@ const TableView: ViewRenderer = ({ entries, view, basesData, total, locale, slug
           </tr>
         </thead>
         <tbody>
-          {entries.map((entry) => {
-            const ctx = { slug: entry.slug };
-            return (
-              <tr>
-                {columns.map((column) => {
-                  const value = resolveEntryPropertyValue(column, entry);
-                  const display = formatValue(value);
-                  const isPrimary = column === "file.name" || column === "title";
-                  const columnWidth = view.columnSize?.[column];
-                  const style = columnWidth
-                    ? { width: `${columnWidth}px`, minWidth: `${columnWidth}px` }
-                    : undefined;
-                  return (
-                    <td data-value={display} style={style}>
-                      {isPrimary ? (
-                        <a
-                          href={resolveRelative(slug, entry.slug)}
-                          class="internal"
-                          data-slug={entry.slug}
-                        >
-                          {display || entry.title}
-                        </a>
-                      ) : (
-                        renderCellValue(value, ctx)
-                      )}
+          {groups
+            ? Array.from(groups.entries()).map(([label, groupEntries]) => (
+                <>
+                  <tr class="bases-table-group-header">
+                    <td colSpan={columns.length}>
+                      <span class="bases-table-group-label">{label}</span>
+                      <span class="bases-table-group-count">{groupEntries.length}</span>
                     </td>
-                  );
-                })}
-              </tr>
-            );
-          })}
+                  </tr>
+                  {groupEntries.map((entry) => renderRow(entry, columns, view, slug))}
+                </>
+              ))
+            : entries.map((entry) => renderRow(entry, columns, view, slug))}
         </tbody>
         {hasSummary && (
           <tfoot>

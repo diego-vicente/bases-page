@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { evaluate } from "../src/compiler";
+import type { EvalContext } from "../src/compiler";
 
 const eventDate = new Date(2024, 0, 15, 12, 0, 0);
 
@@ -87,6 +88,53 @@ describe("string methods", () => {
       tags: [],
       links: [],
     });
+  });
+
+  it("resolves file metadata from _fileLookup", () => {
+    const lookup = new Map<string, EvalContext["file"]>();
+    lookup.set("notes/example.md", {
+      name: "example.md",
+      basename: "example",
+      path: "notes/example.md",
+      folder: "notes",
+      ext: "md",
+      tags: ["species", "lineage"],
+      links: ["other"],
+      embeds: ["image.png"],
+    });
+    const ctx = { ...context, _fileLookup: lookup };
+    const result = evaluate('"notes/example.md".asFile()', ctx) as Record<string, unknown>;
+    expect(result).toBeDefined();
+    expect(result.tags).toEqual(["species", "lineage"]);
+    expect(result.links).toEqual(["other"]);
+    expect(result.embeds).toEqual(["image.png"]);
+  });
+
+  it("resolves _fileLookup without .md extension", () => {
+    const lookup = new Map<string, EvalContext["file"]>();
+    lookup.set("notes/example.md", {
+      name: "example.md",
+      basename: "example",
+      path: "notes/example.md",
+      folder: "notes",
+      ext: "md",
+      tags: ["tagged"],
+      links: [],
+    });
+    const ctx = { ...context, _fileLookup: lookup };
+    const result = evaluate('"notes/example".asFile()', ctx) as Record<string, unknown>;
+    expect(result).toBeDefined();
+    expect(result.tags).toEqual(["tagged"]);
+    expect(result.path).toBe("notes/example.md");
+  });
+
+  it("falls back to skeleton when path not in _fileLookup", () => {
+    const lookup = new Map<string, EvalContext["file"]>();
+    const ctx = { ...context, _fileLookup: lookup };
+    const result = evaluate('"unknown/file.md".asFile()', ctx) as Record<string, unknown>;
+    expect(result).toBeDefined();
+    expect(result.tags).toEqual([]);
+    expect(result.path).toBe("unknown/file.md");
   });
 });
 

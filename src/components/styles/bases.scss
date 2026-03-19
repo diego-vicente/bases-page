@@ -126,6 +126,26 @@ th.is-sorted-desc .bases-sort-indicator {
   color: var(--darkgray);
 }
 
+.bases-table-group-header td {
+  background: var(--lightgray);
+  font-weight: 600;
+  padding: 8px 12px;
+  border-bottom: 2px solid var(--gray);
+}
+
+.bases-table-group-label {
+  margin-right: 8px;
+}
+
+.bases-table-group-count {
+  background: var(--light);
+  color: var(--darkgray);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
 .bases-separator {
   color: var(--gray);
 }

@@ -1,6 +1,6 @@
 import { createRequire } from 'module';
 import { viewRegistry, registerCustomViews } from './chunk-2AUMER56.js';
-import { evaluate, evaluateFilter, resolvePropertyValue } from './chunk-RL22V3IO.js';
+import { evaluate, evaluateFilter, resolvePropertyValue } from './chunk-BUL4PXPV.js';
 import { jsx, jsxs, Fragment } from 'preact/jsx-runtime';
 
 createRequire(import.meta.url);
@@ -120,6 +120,18 @@ function sortEntries(entries, view) {
 function resolveBasesEntries(basesData, allFiles, view, selfContext) {
   const entries = [];
   const formulas = basesData.formulas ?? {};
+  const fileLookup = /* @__PURE__ */ new Map();
+  for (const fd of allFiles) {
+    const fdSlug = typeof fd.slug === "string" ? fd.slug : "";
+    if (!fdSlug) continue;
+    const fdPath = getFilePath(fd, fdSlug);
+    const fm = fd.frontmatter ?? {};
+    const fp = buildFileProperties(fd, fdSlug, fm);
+    const fileValue = { ...fp, properties: fm };
+    fileLookup.set(fdPath, fileValue);
+    const withoutExt = fdPath.replace(/\.md$/, "");
+    if (withoutExt !== fdPath) fileLookup.set(withoutExt, fileValue);
+  }
   for (const fileData of allFiles) {
     const slug = typeof fileData.slug === "string" ? fileData.slug : "";
     if (!slug) continue;
@@ -131,7 +143,8 @@ function resolveBasesEntries(basesData, allFiles, view, selfContext) {
       note: frontmatter,
       file: { ...fileProperties, properties: frontmatter },
       formula: {},
-      self: selfContext
+      self: selfContext,
+      _fileLookup: fileLookup
     };
     for (const [name, expr] of Object.entries(formulas)) {
       context.formula[name] = evaluate(expr, context);
@@ -594,11 +607,40 @@ function formatMessage5(template, values) {
     template
   );
 }
+function groupEntries(entries, groupProperty, emptyLabel) {
+  if (!groupProperty) return null;
+  const groups = /* @__PURE__ */ new Map();
+  for (const entry of entries) {
+    const rawValue = resolveEntryPropertyValue(groupProperty, entry);
+    const label = isEmptyValue(rawValue) ? emptyLabel : formatValue(rawValue);
+    const key = label || emptyLabel;
+    const existing = groups.get(key);
+    if (existing) {
+      existing.push(entry);
+    } else {
+      groups.set(key, [entry]);
+    }
+  }
+  return groups.size > 0 ? groups : null;
+}
+function renderRow(entry, columns, view, slug) {
+  const ctx = { slug: entry.slug };
+  return /* @__PURE__ */ jsx("tr", { children: columns.map((column) => {
+    const value = resolveEntryPropertyValue(column, entry);
+    const display = formatValue(value);
+    const isPrimary = column === "file.name" || column === "title";
+    const columnWidth = view.columnSize?.[column];
+    const style = columnWidth ? { width: `${columnWidth}px`, minWidth: `${columnWidth}px` } : void 0;
+    return /* @__PURE__ */ jsx("td", { "data-value": display, style, children: isPrimary ? /* @__PURE__ */ jsx("a", { href: resolveRelative(slug, entry.slug), class: "internal", "data-slug": entry.slug, children: display || entry.title }) : renderCellValue(value, ctx) });
+  }) });
+}
 var TableView = ({ entries, view, basesData, total, locale, slug }) => {
   const columns = getColumns(view, basesData, entries);
   const summaries = view.summaries ?? {};
   const hasSummary = Object.keys(summaries).length > 0;
   const localeStrings = i18n(locale).components.bases;
+  const groupProperty = view.groupBy?.property;
+  const groups = groupEntries(entries, groupProperty, localeStrings.uncategorized);
   return /* @__PURE__ */ jsxs("div", { class: "bases-table-wrapper", children: [
     /* @__PURE__ */ jsx("div", { class: "bases-view-meta", children: formatMessage5(localeStrings.showingCount, {
       count: entries.length,
@@ -613,25 +655,13 @@ var TableView = ({ entries, view, basesData, total, locale, slug }) => {
           /* @__PURE__ */ jsx("span", { class: "bases-sort-indicator", "aria-hidden": "true" })
         ] });
       }) }) }),
-      /* @__PURE__ */ jsx("tbody", { children: entries.map((entry) => {
-        const ctx = { slug: entry.slug };
-        return /* @__PURE__ */ jsx("tr", { children: columns.map((column) => {
-          const value = resolveEntryPropertyValue(column, entry);
-          const display = formatValue(value);
-          const isPrimary = column === "file.name" || column === "title";
-          const columnWidth = view.columnSize?.[column];
-          const style = columnWidth ? { width: `${columnWidth}px`, minWidth: `${columnWidth}px` } : void 0;
-          return /* @__PURE__ */ jsx("td", { "data-value": display, style, children: isPrimary ? /* @__PURE__ */ jsx(
-            "a",
-            {
-              href: resolveRelative(slug, entry.slug),
-              class: "internal",
-              "data-slug": entry.slug,
-              children: display || entry.title
-            }
-          ) : renderCellValue(value, ctx) });
-        }) });
-      }) }),
+      /* @__PURE__ */ jsx("tbody", { children: groups ? Array.from(groups.entries()).map(([label, groupEntries2]) => /* @__PURE__ */ jsxs(Fragment, { children: [
+        /* @__PURE__ */ jsx("tr", { class: "bases-table-group-header", children: /* @__PURE__ */ jsxs("td", { colSpan: columns.length, children: [
+          /* @__PURE__ */ jsx("span", { class: "bases-table-group-label", children: label }),
+          /* @__PURE__ */ jsx("span", { class: "bases-table-group-count", children: groupEntries2.length })
+        ] }) }),
+        groupEntries2.map((entry) => renderRow(entry, columns, view, slug))
+      ] })) : entries.map((entry) => renderRow(entry, columns, view, slug)) }),
       hasSummary && /* @__PURE__ */ jsx("tfoot", { children: /* @__PURE__ */ jsx("tr", { class: "bases-summary-row", children: columns.map((column) => {
         const summary = summaries[column];
         if (!summary) return /* @__PURE__ */ jsx("td", {});
@@ -658,7 +688,7 @@ function registerBuiltinViews() {
 }
 
 // src/components/styles/bases.scss
-var bases_default = ".bases-page {\n  width: 100%;\n  max-width: 100%;\n  display: flex;\n  flex-direction: column;\n  gap: 16px;\n  overflow: hidden;\n}\n\n.bases-view-tabs {\n  display: flex;\n  gap: 8px;\n  flex-wrap: wrap;\n}\n.bases-view-tabs button {\n  border: 1px solid var(--lightgray);\n  background: var(--light);\n  color: var(--darkgray);\n  padding: 6px 12px;\n  border-radius: 999px;\n  cursor: pointer;\n  font-size: 0.9rem;\n}\n.bases-view-tabs button.is-active {\n  background: var(--secondary);\n  color: var(--light);\n  border-color: var(--secondary);\n}\n\n.bases-view-container {\n  display: flex;\n  flex-direction: column;\n  gap: 16px;\n}\n\n.bases-view {\n  display: none;\n}\n.bases-view.is-active {\n  display: block;\n}\n\n.bases-view-meta {\n  font-size: 0.85rem;\n  color: var(--gray);\n  margin-bottom: 8px;\n}\n\n.bases-table-wrapper {\n  width: 100%;\n  overflow-x: auto;\n}\n\n.bases-table {\n  width: 100%;\n  border-collapse: collapse;\n  border: 1px solid var(--lightgray);\n  border-radius: 8px;\n  overflow: hidden;\n}\n.bases-table th,\n.bases-table td {\n  padding: 10px 12px;\n  text-align: left;\n  border-bottom: 1px solid var(--lightgray);\n  font-size: 0.9rem;\n}\n.bases-table thead th {\n  position: sticky;\n  top: 0;\n  background: var(--light);\n  color: var(--dark);\n  font-weight: 600;\n  cursor: pointer;\n}\n.bases-table tbody tr:nth-child(even) {\n  background: var(--lightgray);\n}\n.bases-table td .bases-empty {\n  padding: 0;\n  border: 0;\n  background: none;\n  color: var(--gray);\n  display: inline;\n}\n.bases-table td code {\n  font-size: 0.85em;\n  padding: 0.1rem 0.3rem;\n  border-radius: 3px;\n  background: var(--highlight);\n  word-break: break-all;\n}\n\n.bases-sort-indicator {\n  display: inline-block;\n  width: 8px;\n  height: 8px;\n  margin-left: 6px;\n  border-right: 2px solid transparent;\n  border-bottom: 2px solid transparent;\n}\n\nth.is-sorted-asc .bases-sort-indicator {\n  border-right-color: var(--darkgray);\n  border-bottom-color: var(--darkgray);\n  transform: rotate(-45deg);\n}\n\nth.is-sorted-desc .bases-sort-indicator {\n  border-right-color: var(--darkgray);\n  border-bottom-color: var(--darkgray);\n  transform: rotate(135deg);\n}\n\n.bases-summary-row td {\n  background: var(--light);\n  font-weight: 600;\n  color: var(--darkgray);\n}\n\n.bases-separator {\n  color: var(--gray);\n}\n\n.bases-number {\n  font-variant-numeric: tabular-nums;\n}\n\n.bases-list {\n  list-style: none;\n  padding: 0;\n  margin: 0;\n  display: flex;\n  flex-direction: column;\n  gap: 12px;\n}\n\n.bases-list-item {\n  padding: 12px;\n  border: 1px solid var(--lightgray);\n  border-radius: 8px;\n  background: var(--light);\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n}\n\n.bases-list-meta {\n  display: flex;\n  flex-wrap: wrap;\n  gap: 6px;\n}\n\n.bases-list-chip {\n  background: var(--lightgray);\n  color: var(--darkgray);\n  padding: 2px 8px;\n  border-radius: 999px;\n  font-size: 0.75rem;\n}\n\n.bases-cards {\n  display: grid;\n  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));\n  gap: 16px;\n}\n\n.bases-card {\n  border: 1px solid var(--lightgray);\n  border-radius: 12px;\n  overflow: hidden;\n  background: var(--light);\n  display: flex;\n  flex-direction: column;\n  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);\n}\n\n.bases-card-image img {\n  width: 100%;\n  height: 140px;\n  object-fit: cover;\n}\n\n.bases-card-body {\n  padding: 12px;\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n}\n\n.bases-card-meta {\n  display: grid;\n  gap: 4px;\n}\n\n.bases-card-row {\n  display: flex;\n  justify-content: space-between;\n  font-size: 0.8rem;\n  color: var(--darkgray);\n}\n\n.bases-card-label {\n  color: var(--gray);\n}\n\n.bases-map-placeholder {\n  padding: 24px;\n  border: 1px dashed var(--lightgray);\n  border-radius: 12px;\n  background: var(--light);\n}\n\n.bases-map-message {\n  color: var(--darkgray);\n  margin-top: 12px;\n}\n\n.bases-empty {\n  padding: 24px;\n  text-align: center;\n  color: var(--darkgray);\n  border: 1px dashed var(--lightgray);\n  border-radius: 12px;\n  background: var(--light);\n}\n\n.bases-gallery {\n  display: grid;\n  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));\n  gap: 16px;\n}\n\n.bases-gallery-item {\n  position: relative;\n  border-radius: 12px;\n  overflow: hidden;\n  border: 1px solid var(--lightgray);\n  background: var(--light);\n}\n\n.bases-gallery-image {\n  aspect-ratio: 4/3;\n  overflow: hidden;\n  background: var(--lightgray);\n}\n\n.bases-gallery-image img,\n.bases-gallery-placeholder {\n  width: 100%;\n  height: 100%;\n  display: block;\n  object-fit: cover;\n}\n\n.bases-gallery-placeholder {\n  background: linear-gradient(135deg, var(--lightgray), var(--highlight));\n}\n\n.bases-gallery-title {\n  position: absolute;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  padding: 10px 12px;\n  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.65) 100%);\n  color: var(--light);\n  font-weight: 600;\n}\n\n.bases-gallery-title a {\n  color: inherit;\n}\n\n.bases-board {\n  display: flex;\n  gap: 16px;\n  overflow-x: auto;\n  padding-bottom: 4px;\n}\n\n.bases-board-column {\n  min-width: min(250px, 80vw);\n  flex-shrink: 0;\n  border: 1px solid var(--lightgray);\n  border-radius: 12px;\n  background: var(--light);\n  display: flex;\n  flex-direction: column;\n}\n\n.bases-board-column-header {\n  position: sticky;\n  top: 0;\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 8px;\n  padding: 10px 12px;\n  font-weight: 600;\n  background: var(--light);\n  border-bottom: 1px solid var(--lightgray);\n  z-index: 1;\n}\n\n.bases-board-count {\n  background: var(--lightgray);\n  color: var(--darkgray);\n  border-radius: 999px;\n  padding: 2px 8px;\n  font-size: 0.75rem;\n}\n\n.bases-board-column-body {\n  padding: 8px;\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n}\n\n.bases-board-card {\n  border: 1px solid var(--lightgray);\n  border-radius: 10px;\n  background: var(--light);\n  padding: 10px 12px;\n  display: flex;\n  flex-direction: column;\n  gap: 6px;\n  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);\n}\n\n.bases-board-card-meta {\n  display: grid;\n  gap: 4px;\n  font-size: 0.8rem;\n  color: var(--darkgray);\n}\n\n.bases-board-card-row {\n  display: flex;\n  justify-content: space-between;\n  gap: 8px;\n}\n\n.bases-board-card-label {\n  color: var(--gray);\n}";
+var bases_default = ".bases-page {\n  width: 100%;\n  max-width: 100%;\n  display: flex;\n  flex-direction: column;\n  gap: 16px;\n  overflow: hidden;\n}\n\n.bases-view-tabs {\n  display: flex;\n  gap: 8px;\n  flex-wrap: wrap;\n}\n.bases-view-tabs button {\n  border: 1px solid var(--lightgray);\n  background: var(--light);\n  color: var(--darkgray);\n  padding: 6px 12px;\n  border-radius: 999px;\n  cursor: pointer;\n  font-size: 0.9rem;\n}\n.bases-view-tabs button.is-active {\n  background: var(--secondary);\n  color: var(--light);\n  border-color: var(--secondary);\n}\n\n.bases-view-container {\n  display: flex;\n  flex-direction: column;\n  gap: 16px;\n}\n\n.bases-view {\n  display: none;\n}\n.bases-view.is-active {\n  display: block;\n}\n\n.bases-view-meta {\n  font-size: 0.85rem;\n  color: var(--gray);\n  margin-bottom: 8px;\n}\n\n.bases-table-wrapper {\n  width: 100%;\n  overflow-x: auto;\n}\n\n.bases-table {\n  width: 100%;\n  border-collapse: collapse;\n  border: 1px solid var(--lightgray);\n  border-radius: 8px;\n  overflow: hidden;\n}\n.bases-table th,\n.bases-table td {\n  padding: 10px 12px;\n  text-align: left;\n  border-bottom: 1px solid var(--lightgray);\n  font-size: 0.9rem;\n}\n.bases-table thead th {\n  position: sticky;\n  top: 0;\n  background: var(--light);\n  color: var(--dark);\n  font-weight: 600;\n  cursor: pointer;\n}\n.bases-table tbody tr:nth-child(even) {\n  background: var(--lightgray);\n}\n.bases-table td .bases-empty {\n  padding: 0;\n  border: 0;\n  background: none;\n  color: var(--gray);\n  display: inline;\n}\n.bases-table td code {\n  font-size: 0.85em;\n  padding: 0.1rem 0.3rem;\n  border-radius: 3px;\n  background: var(--highlight);\n  word-break: break-all;\n}\n\n.bases-sort-indicator {\n  display: inline-block;\n  width: 8px;\n  height: 8px;\n  margin-left: 6px;\n  border-right: 2px solid transparent;\n  border-bottom: 2px solid transparent;\n}\n\nth.is-sorted-asc .bases-sort-indicator {\n  border-right-color: var(--darkgray);\n  border-bottom-color: var(--darkgray);\n  transform: rotate(-45deg);\n}\n\nth.is-sorted-desc .bases-sort-indicator {\n  border-right-color: var(--darkgray);\n  border-bottom-color: var(--darkgray);\n  transform: rotate(135deg);\n}\n\n.bases-summary-row td {\n  background: var(--light);\n  font-weight: 600;\n  color: var(--darkgray);\n}\n\n.bases-table-group-header td {\n  background: var(--lightgray);\n  font-weight: 600;\n  padding: 8px 12px;\n  border-bottom: 2px solid var(--gray);\n}\n\n.bases-table-group-label {\n  margin-right: 8px;\n}\n\n.bases-table-group-count {\n  background: var(--light);\n  color: var(--darkgray);\n  border-radius: 999px;\n  padding: 2px 8px;\n  font-size: 0.75rem;\n  font-weight: 400;\n}\n\n.bases-separator {\n  color: var(--gray);\n}\n\n.bases-number {\n  font-variant-numeric: tabular-nums;\n}\n\n.bases-list {\n  list-style: none;\n  padding: 0;\n  margin: 0;\n  display: flex;\n  flex-direction: column;\n  gap: 12px;\n}\n\n.bases-list-item {\n  padding: 12px;\n  border: 1px solid var(--lightgray);\n  border-radius: 8px;\n  background: var(--light);\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n}\n\n.bases-list-meta {\n  display: flex;\n  flex-wrap: wrap;\n  gap: 6px;\n}\n\n.bases-list-chip {\n  background: var(--lightgray);\n  color: var(--darkgray);\n  padding: 2px 8px;\n  border-radius: 999px;\n  font-size: 0.75rem;\n}\n\n.bases-cards {\n  display: grid;\n  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));\n  gap: 16px;\n}\n\n.bases-card {\n  border: 1px solid var(--lightgray);\n  border-radius: 12px;\n  overflow: hidden;\n  background: var(--light);\n  display: flex;\n  flex-direction: column;\n  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);\n}\n\n.bases-card-image img {\n  width: 100%;\n  height: 140px;\n  object-fit: cover;\n}\n\n.bases-card-body {\n  padding: 12px;\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n}\n\n.bases-card-meta {\n  display: grid;\n  gap: 4px;\n}\n\n.bases-card-row {\n  display: flex;\n  justify-content: space-between;\n  font-size: 0.8rem;\n  color: var(--darkgray);\n}\n\n.bases-card-label {\n  color: var(--gray);\n}\n\n.bases-map-placeholder {\n  padding: 24px;\n  border: 1px dashed var(--lightgray);\n  border-radius: 12px;\n  background: var(--light);\n}\n\n.bases-map-message {\n  color: var(--darkgray);\n  margin-top: 12px;\n}\n\n.bases-empty {\n  padding: 24px;\n  text-align: center;\n  color: var(--darkgray);\n  border: 1px dashed var(--lightgray);\n  border-radius: 12px;\n  background: var(--light);\n}\n\n.bases-gallery {\n  display: grid;\n  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));\n  gap: 16px;\n}\n\n.bases-gallery-item {\n  position: relative;\n  border-radius: 12px;\n  overflow: hidden;\n  border: 1px solid var(--lightgray);\n  background: var(--light);\n}\n\n.bases-gallery-image {\n  aspect-ratio: 4/3;\n  overflow: hidden;\n  background: var(--lightgray);\n}\n\n.bases-gallery-image img,\n.bases-gallery-placeholder {\n  width: 100%;\n  height: 100%;\n  display: block;\n  object-fit: cover;\n}\n\n.bases-gallery-placeholder {\n  background: linear-gradient(135deg, var(--lightgray), var(--highlight));\n}\n\n.bases-gallery-title {\n  position: absolute;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  padding: 10px 12px;\n  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.65) 100%);\n  color: var(--light);\n  font-weight: 600;\n}\n\n.bases-gallery-title a {\n  color: inherit;\n}\n\n.bases-board {\n  display: flex;\n  gap: 16px;\n  overflow-x: auto;\n  padding-bottom: 4px;\n}\n\n.bases-board-column {\n  min-width: min(250px, 80vw);\n  flex-shrink: 0;\n  border: 1px solid var(--lightgray);\n  border-radius: 12px;\n  background: var(--light);\n  display: flex;\n  flex-direction: column;\n}\n\n.bases-board-column-header {\n  position: sticky;\n  top: 0;\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 8px;\n  padding: 10px 12px;\n  font-weight: 600;\n  background: var(--light);\n  border-bottom: 1px solid var(--lightgray);\n  z-index: 1;\n}\n\n.bases-board-count {\n  background: var(--lightgray);\n  color: var(--darkgray);\n  border-radius: 999px;\n  padding: 2px 8px;\n  font-size: 0.75rem;\n}\n\n.bases-board-column-body {\n  padding: 8px;\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n}\n\n.bases-board-card {\n  border: 1px solid var(--lightgray);\n  border-radius: 10px;\n  background: var(--light);\n  padding: 10px 12px;\n  display: flex;\n  flex-direction: column;\n  gap: 6px;\n  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);\n}\n\n.bases-board-card-meta {\n  display: grid;\n  gap: 4px;\n  font-size: 0.8rem;\n  color: var(--darkgray);\n}\n\n.bases-board-card-row {\n  display: flex;\n  justify-content: space-between;\n  gap: 8px;\n}\n\n.bases-board-card-label {\n  color: var(--gray);\n}";
 
 // src/components/scripts/bases.inline.ts
 var bases_inline_default = `function v(e,t){let n=e.querySelectorAll(".bases-view-tabs button"),r=e.querySelectorAll(".bases-view");n.forEach(s=>{s.classList.toggle("is-active",s.dataset.viewIndex===String(t))}),r.forEach(s=>{s.classList.toggle("is-active",s.dataset.viewIndex===String(t))})}function f(e,t){let n=Number(e),r=Number(t);return!Number.isNaN(n)&&!Number.isNaN(r)?n-r:String(e).localeCompare(String(t))}function b(e,t,n){let r=e.querySelector("tbody");if(!r)return;let s=Array.from(r.querySelectorAll("tr"));s.sort((c,o)=>{let a=c.children[t],u=o.children[t],i=a?.dataset?.value??a?.textContent??"",l=u?.dataset?.value??u?.textContent??"";return f(i,l)}),n==="desc"&&s.reverse(),s.forEach(c=>{r.appendChild(c)})}function m(e,t){e.querySelectorAll(".bases-table").forEach(r=>{let s=r.querySelectorAll("th[data-sortable='true']");s.forEach((c,o)=>{let a=()=>{let i=(c.dataset.sortDirection||"none")==="asc"?"desc":"asc";s.forEach(l=>{l!==c&&(l.dataset.sortDirection="none"),l.classList.remove("is-sorted-asc","is-sorted-desc")}),c.dataset.sortDirection=i,c.classList.toggle("is-sorted-asc",i==="asc"),c.classList.toggle("is-sorted-desc",i==="desc"),b(r,o,i)};c.addEventListener("click",a),t.push(()=>c.removeEventListener("click",a))})})}function E(e,t){let n=e.querySelectorAll(".bases-view-tabs button");if(n.length===0)return;let r=parseInt(e.dataset.initialView||"0",10);v(e,Number.isNaN(r)?0:r),n.forEach(s=>{let c=()=>{let o=parseInt(s.dataset.viewIndex||"0",10);v(e,Number.isNaN(o)?0:o)};s.addEventListener("click",c),t.push(()=>s.removeEventListener("click",c))})}function d(){let e=document.querySelectorAll(".bases-page");if(e.length===0)return;let t=[];e.forEach(n=>{E(n,t),m(n,t)}),window.addCleanup&&window.addCleanup(()=>{t.forEach(n=>{n()})})}document.addEventListener("nav",()=>{d()});document.addEventListener("render",()=>{d()});d();
@@ -747,5 +777,5 @@ var BasesBody_default = ((opts) => {
 });
 
 export { BasesBody_default, ViewSelector, i18n, registerBuiltinViews, resolveBasesEntries };
-//# sourceMappingURL=chunk-5EKPF2DN.js.map
-//# sourceMappingURL=chunk-5EKPF2DN.js.map
+//# sourceMappingURL=chunk-VZFVKCS7.js.map
+//# sourceMappingURL=chunk-VZFVKCS7.js.map

@@ -233,4 +233,75 @@ describe("resolveBasesEntries", () => {
     const result = resolveBasesEntries(basesData, files);
     expect(result.entries[0]?.formulaValues.customTitle).toBe("My Custom Title");
   });
+
+  it("resolves file metadata in string.asFile() via _fileLookup", () => {
+    const elfFile = makeFile({
+      slug: "Compendium/Lineages/elf",
+      filePath: "Compendium/Lineages/elf.md",
+      frontmatter: { title: "Elf", tags: ["lineage"] },
+    });
+    const humanFile = makeFile({
+      slug: "Compendium/Lineages/human",
+      filePath: "Compendium/Lineages/human.md",
+      frontmatter: { title: "Human", tags: ["lineage"] },
+    });
+    const dragonFile = makeFile({
+      slug: "Compendium/Creatures/dragon",
+      filePath: "Compendium/Creatures/dragon.md",
+      frontmatter: { title: "Dragon", tags: ["creature"] },
+    });
+    const speciesFile = makeFile({
+      slug: "Compendium/Species/halfelf",
+      filePath: "Compendium/Species/halfelf.md",
+      frontmatter: { title: "Half-Elf", tags: ["species"], source: "PHB" },
+    });
+    (speciesFile as Record<string, unknown>).embeds = [
+      "Compendium/Lineages/elf.md",
+      "Compendium/Creatures/dragon.md",
+    ];
+
+    const basesData: BasesData = {
+      formulas: {
+        Inheritances: 'file.embeds.filter(value.asFile().hasTag("lineage")).map(value.asFile())',
+      },
+      filters: 'file.tags.contains("species")',
+    };
+
+    const allFiles = [elfFile, humanFile, dragonFile, speciesFile];
+    const result = resolveBasesEntries(basesData, allFiles);
+    expect(result.entries).toHaveLength(1);
+    const halfelf = result.entries[0];
+    expect(halfelf?.slug).toBe("Compendium/Species/halfelf");
+    const inheritances = halfelf?.formulaValues.Inheritances as Record<string, unknown>[];
+    expect(inheritances).toHaveLength(1);
+    expect(inheritances[0]?.name).toBe("elf.md");
+    expect(inheritances[0]?.tags).toEqual(["lineage"]);
+  });
+
+  it("resolves string.asFile() without .md extension in embeds", () => {
+    const targetFile = makeFile({
+      slug: "docs/guide",
+      filePath: "docs/guide.md",
+      frontmatter: { title: "Guide", tags: ["reference"] },
+    });
+    const sourceFile = makeFile({
+      slug: "pages/index",
+      filePath: "pages/index.md",
+      frontmatter: { title: "Index", tags: ["page"] },
+    });
+    (sourceFile as Record<string, unknown>).embeds = ["docs/guide"];
+
+    const basesData: BasesData = {
+      formulas: {
+        refs: 'file.embeds.filter(value.asFile().hasTag("reference")).map(value.asFile())',
+      },
+      filters: 'file.tags.contains("page")',
+    };
+
+    const result = resolveBasesEntries(basesData, [targetFile, sourceFile]);
+    expect(result.entries).toHaveLength(1);
+    const refs = result.entries[0]?.formulaValues.refs as Record<string, unknown>[];
+    expect(refs).toHaveLength(1);
+    expect(refs[0]?.name).toBe("guide.md");
+  });
 });

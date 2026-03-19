@@ -130,6 +130,7 @@ type EvalContext = {
         };
     };
     _lambdaValue?: unknown;
+    _fileLookup?: Map<string, EvalContext["file"]>;
 };
 declare function resolvePropertyValue(path: string, context: EvalContext): unknown;
 

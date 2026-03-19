@@ -29,6 +29,7 @@ export type EvalContext = {
     };
   };
   _lambdaValue?: unknown;
+  _fileLookup?: Map<string, EvalContext["file"]>;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {

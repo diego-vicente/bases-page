@@ -129,6 +129,19 @@ export function resolveBasesEntries(
   const entries: BasesEntry[] = [];
   const formulas = basesData.formulas ?? {};
 
+  const fileLookup = new Map<string, EvalContext["file"]>();
+  for (const fd of allFiles) {
+    const fdSlug = typeof fd.slug === "string" ? fd.slug : "";
+    if (!fdSlug) continue;
+    const fdPath = getFilePath(fd, fdSlug);
+    const fm = (fd.frontmatter ?? {}) as Record<string, unknown>;
+    const fp = buildFileProperties(fd, fdSlug, fm);
+    const fileValue: EvalContext["file"] = { ...fp, properties: fm };
+    fileLookup.set(fdPath, fileValue);
+    const withoutExt = fdPath.replace(/\.md$/, "");
+    if (withoutExt !== fdPath) fileLookup.set(withoutExt, fileValue);
+  }
+
   for (const fileData of allFiles) {
     const slug = typeof fileData.slug === "string" ? fileData.slug : "";
     if (!slug) continue;
@@ -143,6 +156,7 @@ export function resolveBasesEntries(
       file: { ...fileProperties, properties: frontmatter },
       formula: {} as Record<string, unknown>,
       self: selfContext,
+      _fileLookup: fileLookup,
     };
 
     // Evaluate formulas

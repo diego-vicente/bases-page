@@ -1182,9 +1182,15 @@ registerMethodFunction("string", "title", (target) => {
   const value = toStringValue(target);
   return value.replace(/\b\w/g, (ch) => ch.toUpperCase());
 });
-registerMethodFunction("string", "asFile", (target) => {
+registerMethodFunction("string", "asFile", (target, _args, context) => {
   const path = toStringValue(target);
   if (!path) return void 0;
+  const lookup = context._fileLookup;
+  if (lookup) {
+    const normalized = path.trim();
+    const found = lookup.get(normalized) ?? lookup.get(normalized.replace(/\.md$/, "")) ?? (!normalized.endsWith(".md") ? lookup.get(`${normalized}.md`) : void 0);
+    if (found) return { ...found };
+  }
   return buildFileValue(path);
 });
 registerMethodFunction("list", "contains", (target, [needle]) => {
@@ -1689,5 +1695,5 @@ function evaluateFilter(node, context) {
 }
 
 export { compile, evaluate, evaluateFilter, resolvePropertyValue };
-//# sourceMappingURL=chunk-RL22V3IO.js.map
-//# sourceMappingURL=chunk-RL22V3IO.js.map
+//# sourceMappingURL=chunk-BUL4PXPV.js.map
+//# sourceMappingURL=chunk-BUL4PXPV.js.map
