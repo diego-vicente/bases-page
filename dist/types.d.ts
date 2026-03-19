@@ -118,7 +118,13 @@ interface BasesView {
     image?: string;
     /** Card width (unitless ratio or pixels depending on renderer) */
     cardSize?: number;
-    /** Card aspect ratio (width / height) */
+    /** Image aspect ratio (width:height, e.g. 1 for square). Obsidian spec field. */
+    imageAspectRatio?: number;
+    /** Image fit mode: "cover" (crop to fill) or "contain" (scale to fit). Default: "cover". */
+    imageFit?: "cover" | "contain";
+    /**
+     * @deprecated Use imageAspectRatio instead. Kept for backwards compatibility.
+     */
     cardAspect?: number;
     /** Property path for the date field */
     date?: string;

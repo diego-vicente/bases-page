@@ -7,7 +7,7 @@ import {
   renderCellValue,
   resolveEntryPropertyValue,
 } from "../shared/cell";
-import { resolveRelative } from "../../util/path";
+import { resolveRelative, slugifyPath } from "../../util/path";
 
 function formatMessage(template: string, values: Record<string, string | number>): string {
   return Object.entries(values).reduce(
@@ -16,12 +16,33 @@ function formatMessage(template: string, values: Record<string, string | number>
   );
 }
 
+const HEX_COLOR_RE = /^#(?:[0-9a-f]{3}){1,2}$/i;
+const WIKILINK_RE = /^\[\[(.+?)(?:\|.*)?\]\]$/;
+
+export function resolveImageSrc(raw: string, slug: string): { src: string; isColor: boolean } {
+  if (!raw) return { src: "", isColor: false };
+
+  if (HEX_COLOR_RE.test(raw)) {
+    return { src: raw, isColor: true };
+  }
+
+  const wikiMatch = WIKILINK_RE.exec(raw);
+  if (wikiMatch?.[1]) {
+    const target = wikiMatch[1].trim();
+    const resolved = resolveRelative(slug, slugifyPath(target));
+    return { src: resolved, isColor: false };
+  }
+
+  return { src: raw, isColor: false };
+}
+
 const CardsView: ViewRenderer = ({ entries, view, basesData, total, locale, slug }) => {
   const imageProperty = typeof view.image === "string" ? view.image : undefined;
   const columns = getColumns(view, basesData, entries).filter((column) => column !== imageProperty);
   const localeStrings = i18n(locale).components.bases;
   const cardSize = view.cardSize;
-  const cardAspect = view.cardAspect;
+  const aspectRatio = view.imageAspectRatio ?? view.cardAspect;
+  const imageFit = view.imageFit === "contain" ? "contain" : "cover";
   const gridStyle =
     typeof cardSize === "number" && cardSize > 0
       ? { gridTemplateColumns: `repeat(auto-fit, minmax(${cardSize}px, 1fr))` }
@@ -41,22 +62,33 @@ const CardsView: ViewRenderer = ({ entries, view, basesData, total, locale, slug
           const imageValue = imageProperty
             ? resolveEntryPropertyValue(imageProperty, entry)
             : undefined;
-          const imageSrc = imageValue ? String(imageValue) : "";
-          const imageStyle =
-            typeof cardAspect === "number" && cardAspect > 0
-              ? { aspectRatio: String(cardAspect) }
+          const rawImage = imageValue ? String(imageValue) : "";
+          const { src: imageSrc, isColor } = resolveImageSrc(rawImage, slug);
+          const imageAspect =
+            typeof aspectRatio === "number" && aspectRatio > 0
+              ? { aspectRatio: String(aspectRatio) }
               : undefined;
+          const href = resolveRelative(slug, entry.slug);
           return (
-            <div class="bases-card">
-              {imageSrc && (
-                <div class="bases-card-image" style={imageStyle}>
-                  <img src={imageSrc} alt={entry.title} loading="lazy" />
+            <a href={href} class="internal bases-card" data-slug={entry.slug}>
+              {imageSrc && !isColor && (
+                <div class="bases-card-image" style={imageAspect}>
+                  <img
+                    src={imageSrc}
+                    alt={entry.title}
+                    loading="lazy"
+                    style={{ objectFit: imageFit }}
+                  />
                 </div>
               )}
+              {imageSrc && isColor && (
+                <div
+                  class="bases-card-image bases-card-color"
+                  style={{ ...imageAspect, backgroundColor: imageSrc }}
+                />
+              )}
               <div class="bases-card-body">
-                <a href={resolveRelative(slug, entry.slug)} class="internal" data-slug={entry.slug}>
-                  {entry.title}
-                </a>
+                <span class="bases-card-title">{entry.title}</span>
                 <div class="bases-card-meta">
                   {columns.map((column) => {
                     const value = resolveEntryPropertyValue(column, entry);
@@ -70,7 +102,7 @@ const CardsView: ViewRenderer = ({ entries, view, basesData, total, locale, slug
                   })}
                 </div>
               </div>
-            </div>
+            </a>
           );
         })}
       </div>

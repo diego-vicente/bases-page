@@ -1615,6 +1615,11 @@ function interpret(instructions, context) {
       case "CallMethod": {
         const args = popArgs(stack, instruction.argc);
         const target = stack.pop();
+        if ((target === null || target === void 0) && instruction.name === "isEmpty") {
+          stack.push(true);
+          ip += 1;
+          break;
+        }
         const fn = getMethodFunction(instruction.name, target);
         if (!fn) {
           stack.push(void 0);
@@ -1702,5 +1707,5 @@ function evaluateFilter(node, context) {
 }
 
 export { compile, evaluate, evaluateFilter, resolvePropertyValue };
-//# sourceMappingURL=chunk-Y3WWAYZX.js.map
-//# sourceMappingURL=chunk-Y3WWAYZX.js.map
+//# sourceMappingURL=chunk-AA6BIPOH.js.map
+//# sourceMappingURL=chunk-AA6BIPOH.js.map

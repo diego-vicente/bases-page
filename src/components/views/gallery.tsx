@@ -2,6 +2,7 @@ import type { ViewRenderer, ViewTypeRegistration } from "../../types";
 import { i18n } from "../../i18n";
 import { resolveEntryPropertyValue } from "../shared/cell";
 import { resolveRelative } from "../../util/path";
+import { resolveImageSrc } from "./cards";
 
 function formatMessage(template: string, values: Record<string, string | number>): string {
   return Object.entries(values).reduce(
@@ -30,12 +31,15 @@ const GalleryView: ViewRenderer = ({ entries, view, total, locale, slug }) => {
           const imageValue = imageProperty
             ? resolveEntryPropertyValue(imageProperty, entry)
             : undefined;
-          const imageSrc = imageValue ? String(imageValue) : "";
+          const rawImage = imageValue ? String(imageValue) : "";
+          const { src: imageSrc, isColor } = resolveImageSrc(rawImage, slug);
           return (
             <div class="bases-gallery-item">
               <div class="bases-gallery-image">
-                {imageSrc ? (
+                {imageSrc && !isColor ? (
                   <img src={imageSrc} alt={entry.title} loading="lazy" />
+                ) : imageSrc && isColor ? (
+                  <span class="bases-gallery-placeholder" style={{ background: imageSrc }} />
                 ) : (
                   <span
                     class="bases-gallery-placeholder"

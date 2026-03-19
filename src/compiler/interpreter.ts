@@ -397,6 +397,11 @@ export function interpret(instructions: Instruction[], context: EvalContext): un
       case "CallMethod": {
         const args = popArgs(stack, instruction.argc);
         const target = stack.pop();
+        if ((target === null || target === undefined) && instruction.name === "isEmpty") {
+          stack.push(true);
+          ip += 1;
+          break;
+        }
         const fn = getMethodFunction(instruction.name, target);
         if (!fn) {
           stack.push(undefined);

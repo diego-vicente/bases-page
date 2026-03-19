@@ -150,6 +150,61 @@ describe("lambda expressions", () => {
   });
 });
 
+describe("null/undefined isEmpty handling", () => {
+  const nullImageContext = {
+    note: { title: "No Image", image: null as unknown },
+    file: {
+      name: "test.md",
+      basename: "test",
+      path: "test.md",
+      folder: "",
+      ext: "md",
+      tags: [],
+      links: [],
+    },
+    formula: {},
+  };
+
+  const missingImageContext = {
+    note: { title: "Missing" },
+    file: {
+      name: "test.md",
+      basename: "test",
+      path: "test.md",
+      folder: "",
+      ext: "md",
+      tags: [],
+      links: [],
+    },
+    formula: {},
+  };
+
+  it("null.isEmpty() returns true", () => {
+    expect(evaluate("image.isEmpty()", nullImageContext)).toBe(true);
+  });
+
+  it("undefined property.isEmpty() returns true", () => {
+    expect(evaluate("image.isEmpty()", missingImageContext)).toBe(true);
+  });
+
+  it("!null.isEmpty() returns false (filter rejects null images)", () => {
+    expect(evaluate("!image.isEmpty()", nullImageContext)).toBe(false);
+  });
+
+  it("!undefined.isEmpty() returns false (filter rejects missing images)", () => {
+    expect(evaluate("!image.isEmpty()", missingImageContext)).toBe(false);
+  });
+
+  it("non-empty string.isEmpty() returns false", () => {
+    const ctx = {
+      ...nullImageContext,
+      note: { title: "Has Image", image: "photo.png" },
+    };
+    expect(evaluate("image.isEmpty()", ctx)).toBe(false);
+    expect(evaluate("!image.isEmpty()", ctx)).toBe(true);
+  });
+});
+
 describe("file properties and embeds", () => {
   it("accesses file.properties as frontmatter alias", () => {
     expect(evaluate("file.properties.title", context)).toBe("Test Note");
