@@ -62,6 +62,32 @@ describe("string methods", () => {
     expect(evaluate('"hello world".title()', context)).toBe("Hello World");
     expect(evaluate('"the quick brown fox".title()', context)).toBe("The Quick Brown Fox");
   });
+
+  it("converts string to file value with asFile", () => {
+    const result = evaluate('"notes/example.md".asFile()', context);
+    expect(result).toEqual({
+      name: "example.md",
+      basename: "example",
+      path: "notes/example.md",
+      folder: "notes",
+      ext: "md",
+      tags: [],
+      links: [],
+    });
+  });
+
+  it("handles asFile on filename without folder", () => {
+    const result = evaluate('"readme.md".asFile()', context);
+    expect(result).toEqual({
+      name: "readme.md",
+      basename: "readme",
+      path: "readme.md",
+      folder: "",
+      ext: "md",
+      tags: [],
+      links: [],
+    });
+  });
 });
 
 describe("number methods", () => {
@@ -234,6 +260,11 @@ describe("duration and file helpers", () => {
 
   it("supports file.asLink()", () => {
     expect(evaluate("file.asLink()", context)).toBe("[[notes/test]]");
+  });
+
+  it("supports file.asLink() with display text", () => {
+    expect(evaluate('file.asLink("My Note")', context)).toBe("[[notes/test|My Note]]");
+    expect(evaluate('file.asLink("Custom")', context)).toBe("[[notes/test|Custom]]");
   });
 
   it("supports hasTag with nested tag matching", () => {

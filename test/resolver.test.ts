@@ -149,6 +149,7 @@ describe("resolveBasesEntries", () => {
       ext: "md",
       tags: ["work", "important"],
       links: ["beta"],
+      embeds: [],
       created: "2024-01-01T00:00:00.000Z",
       modified: "2024-01-02T00:00:00.000Z",
       ctime: new Date("2024-01-01T00:00:00Z"),
@@ -161,5 +162,75 @@ describe("resolveBasesEntries", () => {
     const result = resolveBasesEntries(basesData, baseFiles);
     const bravo = result.entries.find((entry) => entry.slug === "notes/bravo");
     expect(bravo?.title).toBe("bravo");
+  });
+
+  it("sorts entries by sort field with multiple keys", () => {
+    const files: QuartzPluginData[] = [
+      makeFile({
+        slug: "a",
+        frontmatter: { status: "done", priority: 3 },
+      }),
+      makeFile({
+        slug: "b",
+        frontmatter: { status: "done", priority: 1 },
+      }),
+      makeFile({
+        slug: "c",
+        frontmatter: { status: "todo", priority: 2 },
+      }),
+    ];
+    const basesData: BasesData = {};
+    const view: BasesView = {
+      type: "table",
+      sort: [
+        { property: "status", direction: "ASC" },
+        { property: "priority", direction: "ASC" },
+      ],
+    };
+    const result = resolveBasesEntries(basesData, files, view);
+    // "done" < "todo" alphabetically, then by priority ascending
+    expect(result.entries.map((entry) => entry.slug)).toEqual(["b", "a", "c"]);
+  });
+
+  it("sort field takes priority over groupBy and order", () => {
+    const files: QuartzPluginData[] = [
+      makeFile({ slug: "x", frontmatter: { priority: 3, status: "done" } }),
+      makeFile({ slug: "y", frontmatter: { priority: 1, status: "todo" } }),
+    ];
+    const basesData: BasesData = {};
+    const view: BasesView = {
+      type: "table",
+      sort: [{ property: "priority", direction: "DESC" }],
+      groupBy: { property: "status", direction: "ASC" },
+      order: ["status"],
+    };
+    const result = resolveBasesEntries(basesData, files, view);
+    // sort field wins: priority DESC → x(3) first, y(1) second
+    expect(result.entries.map((entry) => entry.slug)).toEqual(["x", "y"]);
+  });
+
+  it("includes embeds in file properties", () => {
+    const files: QuartzPluginData[] = [makeFile({ slug: "notes/embed-test", frontmatter: {} })];
+    // Manually add embeds to the file data
+    (files[0] as Record<string, unknown>).embeds = ["image.png", "doc.pdf"];
+    const basesData: BasesData = {};
+    const result = resolveBasesEntries(basesData, files);
+    expect(result.entries[0]?.fileProperties.embeds).toEqual(["image.png", "doc.pdf"]);
+  });
+
+  it("spreads frontmatter into file.properties for formula access", () => {
+    const basesData: BasesData = {
+      formulas: {
+        customTitle: "file.properties.title",
+      },
+    };
+    const files: QuartzPluginData[] = [
+      makeFile({
+        slug: "notes/props-test",
+        frontmatter: { title: "My Custom Title" },
+      }),
+    ];
+    const result = resolveBasesEntries(basesData, files);
+    expect(result.entries[0]?.formulaValues.customTitle).toBe("My Custom Title");
   });
 });

@@ -96,6 +96,12 @@ export interface BasesPageOptions {
 /** Sort direction */
 export type SortDirection = "ASC" | "DESC";
 
+/** Sort entry — one column + direction pair */
+export interface SortEntry {
+  property: string;
+  direction?: SortDirection;
+}
+
 /** Filter tree node — recursive and/or/not structure matching Obsidian spec */
 export type FilterNode =
   | string
@@ -149,6 +155,8 @@ export interface BasesView {
   filters?: FilterNode;
   /** Sort order — list of property paths in priority order */
   order?: string[];
+  /** Multi-key sort with explicit direction per column */
+  sort?: SortEntry[];
   /** Per-property summary aggregations */
   summaries?: Record<string, SummaryType>;
 
@@ -217,6 +225,7 @@ export interface BasesEntry {
     ext: string;
     tags: string[];
     links: string[];
+    embeds?: string[];
     created?: string | Date;
     modified?: string | Date;
     ctime?: Date;

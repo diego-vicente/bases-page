@@ -68,6 +68,11 @@ interface BasesPageOptions {
 }
 /** Sort direction */
 type SortDirection = "ASC" | "DESC";
+/** Sort entry — one column + direction pair */
+interface SortEntry {
+    property: string;
+    direction?: SortDirection;
+}
 /** Filter tree node — recursive and/or/not structure matching Obsidian spec */
 type FilterNode = string | {
     and: FilterNode[];
@@ -101,6 +106,8 @@ interface BasesView {
     filters?: FilterNode;
     /** Sort order — list of property paths in priority order */
     order?: string[];
+    /** Multi-key sort with explicit direction per column */
+    sort?: SortEntry[];
     /** Per-property summary aggregations */
     summaries?: Record<string, SummaryType>;
     /** Column widths in pixels, keyed by property path */
@@ -154,6 +161,7 @@ interface BasesEntry {
         ext: string;
         tags: string[];
         links: string[];
+        embeds?: string[];
         created?: string | Date;
         modified?: string | Date;
         ctime?: Date;
@@ -164,4 +172,4 @@ interface BasesEntry {
     formulaValues: Record<string, unknown>;
 }
 
-export type { BasesData, BasesEntry, BasesPageOptions, BasesView, FilterNode, GroupBy, PropertyConfig, SortDirection, SummaryType, ViewRenderer, ViewRendererProps, ViewTypeRegistration };
+export type { BasesData, BasesEntry, BasesPageOptions, BasesView, FilterNode, GroupBy, PropertyConfig, SortDirection, SortEntry, SummaryType, ViewRenderer, ViewRendererProps, ViewTypeRegistration };

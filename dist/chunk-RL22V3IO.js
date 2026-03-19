@@ -15,7 +15,8 @@ var CompilerError = class extends Error {
 };
 
 // src/compiler/compiler.ts
-var Compiler = class {
+var LAZY_METHODS = /* @__PURE__ */ new Set(["filter", "map", "find", "some", "every", "flatMap"]);
+var Compiler = class _Compiler {
   instructions = [];
   compile(expression) {
     this.compileExpression(expression);
@@ -130,6 +131,20 @@ var Compiler = class {
       return;
     }
     if (expression.callee.type === "Member") {
+      if (LAZY_METHODS.has(expression.callee.property)) {
+        this.compileExpression(expression.callee.object);
+        const argPrograms = [];
+        for (const arg of expression.args) {
+          const subCompiler = new _Compiler();
+          argPrograms.push(subCompiler.compile(arg));
+        }
+        this.emit({
+          type: "CallMethodLazy",
+          name: expression.callee.property,
+          argPrograms
+        });
+        return;
+      }
       this.compileExpression(expression.callee.object);
       for (const arg of expression.args) {
         this.compileExpression(arg);
@@ -1144,10 +1159,11 @@ registerMethodFunction("list", "round", (target, [digits]) => {
     return roundTo(numberValue, decimals);
   });
 });
-registerMethodFunction("file", "asLink", (target) => {
+registerMethodFunction("file", "asLink", (target, args) => {
   if (!isFileValue(target)) return "";
   const path = target.path.replace(/\.md$/, "");
-  return `[[${path}]]`;
+  const display = args.length > 0 ? toStringValue(args[0]) : "";
+  return display ? `[[${path}|${display}]]` : `[[${path}]]`;
 });
 registerMethodFunction("string", "containsAll", (target, args) => {
   const value = toStringValue(target);
@@ -1165,6 +1181,11 @@ registerMethodFunction("string", "split", (target, [separator]) => {
 registerMethodFunction("string", "title", (target) => {
   const value = toStringValue(target);
   return value.replace(/\b\w/g, (ch) => ch.toUpperCase());
+});
+registerMethodFunction("string", "asFile", (target) => {
+  const path = toStringValue(target);
+  if (!path) return void 0;
+  return buildFileValue(path);
 });
 registerMethodFunction("list", "contains", (target, [needle]) => {
   if (!Array.isArray(target)) return false;
@@ -1395,6 +1416,7 @@ function resolveIdentifier(name, context) {
   if (name === "note") return context.note;
   if (name === "file") return context.file;
   if (name === "formula") return context.formula;
+  if (name === "value") return context._lambdaValue;
   return context.note[name];
 }
 function resolveMember(target, name) {
@@ -1457,6 +1479,45 @@ function popArgs(stack, count) {
     args[i] = stack.pop();
   }
   return args;
+}
+function evaluateLambda(program, elementValue, context) {
+  const lambdaContext = { ...context, _lambdaValue: elementValue };
+  return interpret(program, lambdaContext);
+}
+function executeLazyMethod(name, target, argPrograms, context) {
+  if (!Array.isArray(target)) return void 0;
+  const body = argPrograms[0];
+  if (!body) return void 0;
+  switch (name) {
+    case "filter":
+      return target.filter((element) => {
+        const result = evaluateLambda(body, element, context);
+        return Boolean(result);
+      });
+    case "map":
+      return target.map((element) => evaluateLambda(body, element, context));
+    case "flatMap": {
+      const mapped = target.map((element) => evaluateLambda(body, element, context));
+      return mapped.flat();
+    }
+    case "find":
+      return target.find((element) => {
+        const result = evaluateLambda(body, element, context);
+        return Boolean(result);
+      });
+    case "some":
+      return target.some((element) => {
+        const result = evaluateLambda(body, element, context);
+        return Boolean(result);
+      });
+    case "every":
+      return target.every((element) => {
+        const result = evaluateLambda(body, element, context);
+        return Boolean(result);
+      });
+    default:
+      return void 0;
+  }
 }
 function interpret(instructions, context) {
   const stack = [];
@@ -1555,6 +1616,18 @@ function interpret(instructions, context) {
         ip += 1;
         break;
       }
+      case "CallMethodLazy": {
+        const target = stack.pop();
+        const result = executeLazyMethod(
+          instruction.name,
+          target,
+          instruction.argPrograms,
+          context
+        );
+        stack.push(result);
+        ip += 1;
+        break;
+      }
       case "Jump":
         ip += instruction.offset;
         break;
@@ -1616,5 +1689,5 @@ function evaluateFilter(node, context) {
 }
 
 export { compile, evaluate, evaluateFilter, resolvePropertyValue };
-//# sourceMappingURL=chunk-3XZ7MWOD.js.map
-//# sourceMappingURL=chunk-3XZ7MWOD.js.map
+//# sourceMappingURL=chunk-RL22V3IO.js.map
+//# sourceMappingURL=chunk-RL22V3IO.js.map

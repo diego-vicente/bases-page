@@ -1,6 +1,6 @@
 import { createRequire } from 'module';
 import { viewRegistry, registerCustomViews } from './chunk-2AUMER56.js';
-import { evaluate, evaluateFilter, resolvePropertyValue } from './chunk-3XZ7MWOD.js';
+import { evaluate, evaluateFilter, resolvePropertyValue } from './chunk-RL22V3IO.js';
 import { jsx, jsxs, Fragment } from 'preact/jsx-runtime';
 
 createRequire(import.meta.url);
@@ -56,6 +56,7 @@ function buildFileProperties(fileData, slug, frontmatter) {
   const ext = lastDot >= 0 ? filePath.slice(lastDot + 1) : "";
   const tags = normalizeStringArray(frontmatter.tags);
   const links = normalizeStringArray(fileData.links ?? fileData.outgoingLinks);
+  const embeds = normalizeStringArray(fileData.embeds);
   const dates = fileData.dates;
   const ctime = toDate(dates?.created);
   const mtime = toDate(dates?.modified);
@@ -67,6 +68,7 @@ function buildFileProperties(fileData, slug, frontmatter) {
     ext,
     tags,
     links,
+    embeds,
     created: ctime?.toISOString(),
     modified: mtime?.toISOString(),
     ctime,
@@ -83,23 +85,36 @@ function compareSort(a, b) {
   if (!Number.isNaN(dateA) && !Number.isNaN(dateB)) return dateA - dateB;
   return String(a).localeCompare(String(b));
 }
+function buildSortKeys(view) {
+  if (view?.sort && view.sort.length > 0) return view.sort;
+  if (view?.groupBy?.property) {
+    return [{ property: view.groupBy.property, direction: view.groupBy.direction ?? "ASC" }];
+  }
+  if (view?.order && view.order.length > 0) {
+    return view.order.map((property) => ({ property, direction: "ASC" }));
+  }
+  return [];
+}
 function sortEntries(entries, view) {
-  const sortProperty = view?.groupBy?.property ?? view?.order?.[0];
-  if (!sortProperty) return entries;
-  const direction = view?.groupBy?.direction ?? "ASC";
-  const sign = direction === "DESC" ? -1 : 1;
+  const sortKeys = buildSortKeys(view);
+  if (sortKeys.length === 0) return entries;
   return [...entries].sort((left, right) => {
-    const leftValue = resolvePropertyValue(sortProperty, {
-      note: left.properties,
-      file: left.fileProperties,
-      formula: left.formulaValues
-    });
-    const rightValue = resolvePropertyValue(sortProperty, {
-      note: right.properties,
-      file: right.fileProperties,
-      formula: right.formulaValues
-    });
-    return sign * compareSort(leftValue, rightValue);
+    for (const key of sortKeys) {
+      const sign = key.direction === "DESC" ? -1 : 1;
+      const leftValue = resolvePropertyValue(key.property, {
+        note: left.properties,
+        file: left.fileProperties,
+        formula: left.formulaValues
+      });
+      const rightValue = resolvePropertyValue(key.property, {
+        note: right.properties,
+        file: right.fileProperties,
+        formula: right.formulaValues
+      });
+      const cmp = compareSort(leftValue, rightValue);
+      if (cmp !== 0) return sign * cmp;
+    }
+    return 0;
   });
 }
 function resolveBasesEntries(basesData, allFiles, view, selfContext) {
@@ -114,7 +129,7 @@ function resolveBasesEntries(basesData, allFiles, view, selfContext) {
     const fileProperties = buildFileProperties(fileData, slug, frontmatter);
     const context = {
       note: frontmatter,
-      file: fileProperties,
+      file: { ...fileProperties, properties: frontmatter },
       formula: {},
       self: selfContext
     };
@@ -732,5 +747,5 @@ var BasesBody_default = ((opts) => {
 });
 
 export { BasesBody_default, ViewSelector, i18n, registerBuiltinViews, resolveBasesEntries };
-//# sourceMappingURL=chunk-4NOJIIYQ.js.map
-//# sourceMappingURL=chunk-4NOJIIYQ.js.map
+//# sourceMappingURL=chunk-5EKPF2DN.js.map
+//# sourceMappingURL=chunk-5EKPF2DN.js.map

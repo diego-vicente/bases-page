@@ -12,6 +12,8 @@ import type {
 import { CompilerError } from "./errors";
 import type { Instruction } from "./ir";
 
+const LAZY_METHODS = new Set(["filter", "map", "find", "some", "every", "flatMap"]);
+
 export type CompiledExpression = {
   ast: Expression;
   instructions: Instruction[];
@@ -153,6 +155,21 @@ class Compiler {
     }
 
     if (expression.callee.type === "Member") {
+      if (LAZY_METHODS.has(expression.callee.property)) {
+        this.compileExpression(expression.callee.object);
+        const argPrograms: Instruction[][] = [];
+        for (const arg of expression.args) {
+          const subCompiler = new Compiler();
+          argPrograms.push(subCompiler.compile(arg));
+        }
+        this.emit({
+          type: "CallMethodLazy",
+          name: expression.callee.property,
+          argPrograms,
+        });
+        return;
+      }
+
       this.compileExpression(expression.callee.object);
       for (const arg of expression.args) {
         this.compileExpression(arg);

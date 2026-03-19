@@ -43,4 +43,29 @@ describe("compiler", () => {
     const last = instructions[instructions.length - 1];
     expect(last).toEqual({ type: "CallMethod", name: "lower", argc: 0 });
   });
+
+  it("compiles lazy methods into CallMethodLazy with argPrograms", () => {
+    const instructions = compile("[1, 2, 3].filter(value > 1)").instructions;
+    const last = instructions[instructions.length - 1];
+    expect(last).toHaveProperty("type", "CallMethodLazy");
+    expect(last).toHaveProperty("name", "filter");
+    expect(last).toHaveProperty("argPrograms");
+    const lazy = last as { type: string; name: string; argPrograms: unknown[][] };
+    expect(lazy.argPrograms).toHaveLength(1);
+    expect(lazy.argPrograms[0]!.length).toBeGreaterThan(0);
+  });
+
+  it("compiles map as CallMethodLazy", () => {
+    const instructions = compile("[1, 2].map(value * 2)").instructions;
+    const last = instructions[instructions.length - 1];
+    expect(last).toHaveProperty("type", "CallMethodLazy");
+    expect(last).toHaveProperty("name", "map");
+  });
+
+  it("does not compile non-lazy methods as CallMethodLazy", () => {
+    const instructions = compile("name.upper()").instructions;
+    const last = instructions[instructions.length - 1];
+    expect(last).toHaveProperty("type", "CallMethod");
+    expect(last).not.toHaveProperty("argPrograms");
+  });
 });

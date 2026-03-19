@@ -88,6 +88,10 @@ type Instruction = {
     name: string;
     argc: number;
 } | {
+    type: "CallMethodLazy";
+    name: string;
+    argPrograms: Instruction[][];
+} | {
     type: "Jump";
     offset: number;
 } | {
@@ -108,6 +112,8 @@ type EvalContext = {
         ext: string;
         tags: string[];
         links: string[];
+        embeds?: string[];
+        properties?: Record<string, unknown>;
         created?: string | Date;
         modified?: string | Date;
         ctime?: Date;
@@ -123,6 +129,7 @@ type EvalContext = {
             ext: string;
         };
     };
+    _lambdaValue?: unknown;
 };
 declare function resolvePropertyValue(path: string, context: EvalContext): unknown;
 

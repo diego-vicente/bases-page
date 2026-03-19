@@ -11,6 +11,8 @@ export type EvalContext = {
     ext: string;
     tags: string[];
     links: string[];
+    embeds?: string[];
+    properties?: Record<string, unknown>;
     created?: string | Date;
     modified?: string | Date;
     ctime?: Date;
@@ -26,6 +28,7 @@ export type EvalContext = {
       ext: string;
     };
   };
+  _lambdaValue?: unknown;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -189,6 +192,7 @@ function resolveIdentifier(name: string, context: EvalContext): unknown {
   if (name === "note") return context.note;
   if (name === "file") return context.file;
   if (name === "formula") return context.formula;
+  if (name === "value") return context._lambdaValue;
   return context.note[name];
 }
 
@@ -254,6 +258,57 @@ function popArgs(stack: unknown[], count: number): unknown[] {
     args[i] = stack.pop();
   }
   return args;
+}
+
+function evaluateLambda(
+  program: Instruction[],
+  elementValue: unknown,
+  context: EvalContext,
+): unknown {
+  const lambdaContext: EvalContext = { ...context, _lambdaValue: elementValue };
+  return interpret(program, lambdaContext);
+}
+
+function executeLazyMethod(
+  name: string,
+  target: unknown,
+  argPrograms: Instruction[][],
+  context: EvalContext,
+): unknown {
+  if (!Array.isArray(target)) return undefined;
+  const body = argPrograms[0];
+  if (!body) return undefined;
+
+  switch (name) {
+    case "filter":
+      return target.filter((element) => {
+        const result = evaluateLambda(body, element, context);
+        return Boolean(result);
+      });
+    case "map":
+      return target.map((element) => evaluateLambda(body, element, context));
+    case "flatMap": {
+      const mapped = target.map((element) => evaluateLambda(body, element, context));
+      return mapped.flat();
+    }
+    case "find":
+      return target.find((element) => {
+        const result = evaluateLambda(body, element, context);
+        return Boolean(result);
+      });
+    case "some":
+      return target.some((element) => {
+        const result = evaluateLambda(body, element, context);
+        return Boolean(result);
+      });
+    case "every":
+      return target.every((element) => {
+        const result = evaluateLambda(body, element, context);
+        return Boolean(result);
+      });
+    default:
+      return undefined;
+  }
 }
 
 export function interpret(instructions: Instruction[], context: EvalContext): unknown {
@@ -352,6 +407,18 @@ export function interpret(instructions: Instruction[], context: EvalContext): un
         } catch {
           stack.push(undefined);
         }
+        ip += 1;
+        break;
+      }
+      case "CallMethodLazy": {
+        const target = stack.pop();
+        const result = executeLazyMethod(
+          instruction.name,
+          target,
+          instruction.argPrograms,
+          context,
+        );
+        stack.push(result);
         ip += 1;
         break;
       }

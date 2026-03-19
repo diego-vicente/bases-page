@@ -1,4 +1,4 @@
-import type { BasesData, BasesEntry, BasesView, QuartzPluginData } from "./types";
+import type { BasesData, BasesEntry, BasesView, QuartzPluginData, SortEntry } from "./types";
 import { evaluate, evaluateFilter, resolvePropertyValue } from "./compiler";
 import type { EvalContext } from "./compiler";
 
@@ -52,6 +52,7 @@ function buildFileProperties(
   const ext = lastDot >= 0 ? filePath.slice(lastDot + 1) : "";
   const tags = normalizeStringArray(frontmatter.tags);
   const links = normalizeStringArray(fileData.links ?? fileData.outgoingLinks);
+  const embeds = normalizeStringArray(fileData.embeds);
 
   const dates = fileData.dates as Record<string, unknown> | undefined;
   const ctime = toDate(dates?.created);
@@ -65,6 +66,7 @@ function buildFileProperties(
     ext,
     tags,
     links,
+    embeds,
     created: ctime?.toISOString(),
     modified: mtime?.toISOString(),
     ctime,
@@ -83,24 +85,38 @@ function compareSort(a: unknown, b: unknown): number {
   return String(a).localeCompare(String(b));
 }
 
+function buildSortKeys(view?: BasesView): SortEntry[] {
+  if (view?.sort && view.sort.length > 0) return view.sort;
+  if (view?.groupBy?.property) {
+    return [{ property: view.groupBy.property, direction: view.groupBy.direction ?? "ASC" }];
+  }
+  if (view?.order && view.order.length > 0) {
+    return view.order.map((property) => ({ property, direction: "ASC" as const }));
+  }
+  return [];
+}
+
 function sortEntries(entries: BasesEntry[], view?: BasesView): BasesEntry[] {
-  const sortProperty = view?.groupBy?.property ?? view?.order?.[0];
-  if (!sortProperty) return entries;
-  const direction = view?.groupBy?.direction ?? "ASC";
-  const sign = direction === "DESC" ? -1 : 1;
+  const sortKeys = buildSortKeys(view);
+  if (sortKeys.length === 0) return entries;
 
   return [...entries].sort((left, right) => {
-    const leftValue = resolvePropertyValue(sortProperty, {
-      note: left.properties,
-      file: left.fileProperties,
-      formula: left.formulaValues,
-    });
-    const rightValue = resolvePropertyValue(sortProperty, {
-      note: right.properties,
-      file: right.fileProperties,
-      formula: right.formulaValues,
-    });
-    return sign * compareSort(leftValue, rightValue);
+    for (const key of sortKeys) {
+      const sign = key.direction === "DESC" ? -1 : 1;
+      const leftValue = resolvePropertyValue(key.property, {
+        note: left.properties,
+        file: left.fileProperties,
+        formula: left.formulaValues,
+      });
+      const rightValue = resolvePropertyValue(key.property, {
+        note: right.properties,
+        file: right.fileProperties,
+        formula: right.formulaValues,
+      });
+      const cmp = compareSort(leftValue, rightValue);
+      if (cmp !== 0) return sign * cmp;
+    }
+    return 0;
   });
 }
 
@@ -124,7 +140,7 @@ export function resolveBasesEntries(
     const fileProperties = buildFileProperties(fileData, slug, frontmatter);
     const context = {
       note: frontmatter,
-      file: fileProperties,
+      file: { ...fileProperties, properties: frontmatter },
       formula: {} as Record<string, unknown>,
       self: selfContext,
     };

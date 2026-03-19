@@ -622,10 +622,11 @@ registerMethodFunction("list", "round", (target, [digits]) => {
   });
 });
 
-registerMethodFunction("file", "asLink", (target) => {
+registerMethodFunction("file", "asLink", (target, args) => {
   if (!isFileValue(target)) return "";
   const path = target.path.replace(/\.md$/, "");
-  return `[[${path}]]`;
+  const display = args.length > 0 ? toStringValue(args[0]) : "";
+  return display ? `[[${path}|${display}]]` : `[[${path}]]`;
 });
 
 registerMethodFunction("string", "containsAll", (target, args) => {
@@ -647,6 +648,12 @@ registerMethodFunction("string", "split", (target, [separator]) => {
 registerMethodFunction("string", "title", (target) => {
   const value = toStringValue(target);
   return value.replace(/\b\w/g, (ch) => ch.toUpperCase());
+});
+
+registerMethodFunction("string", "asFile", (target) => {
+  const path = toStringValue(target);
+  if (!path) return undefined;
+  return buildFileValue(path);
 });
 
 registerMethodFunction("list", "contains", (target, [needle]) => {

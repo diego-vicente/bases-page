@@ -17,6 +17,8 @@ const context = {
     ext: "md",
     tags: ["todo", "important"],
     links: ["other-note"],
+    embeds: ["image.png", "diagram.svg"],
+    properties: { title: "Test Note", status: "done", priority: 5 },
     created: "2024-01-01T00:00:00Z",
     modified: "2024-06-15T00:00:00Z",
   },
@@ -106,5 +108,62 @@ describe("evaluateFilter", () => {
 
   it("returns true when filter is undefined", () => {
     expect(evaluateFilter(undefined, context)).toBe(true);
+  });
+});
+
+describe("lambda expressions", () => {
+  it("filters a list with value binding", () => {
+    expect(evaluate("[1, 2, 3, 4, 5].filter(value > 3)", context)).toEqual([4, 5]);
+    expect(evaluate("[1, 2, 3].filter(value == 2)", context)).toEqual([2]);
+  });
+
+  it("maps a list with value binding", () => {
+    expect(evaluate("[1, 2, 3].map(value * 2)", context)).toEqual([2, 4, 6]);
+    expect(evaluate("[1, 2, 3].map(value + 10)", context)).toEqual([11, 12, 13]);
+  });
+
+  it("finds first matching element", () => {
+    expect(evaluate("[10, 20, 30].find(value > 15)", context)).toBe(20);
+    expect(evaluate("[1, 2, 3].find(value > 100)", context)).toBeUndefined();
+  });
+
+  it("checks if some elements match", () => {
+    expect(evaluate("[1, 2, 3].some(value > 2)", context)).toBe(true);
+    expect(evaluate("[1, 2, 3].some(value > 10)", context)).toBe(false);
+  });
+
+  it("checks if every element matches", () => {
+    expect(evaluate("[2, 4, 6].every(value > 1)", context)).toBe(true);
+    expect(evaluate("[2, 4, 6].every(value > 3)", context)).toBe(false);
+  });
+
+  it("flatMaps a list", () => {
+    expect(evaluate("[[1, 2], [3, 4]].flatMap(value)", context)).toEqual([1, 2, 3, 4]);
+  });
+
+  it("chains filter and map", () => {
+    expect(evaluate("[1, 2, 3, 4].filter(value > 2).map(value * 10)", context)).toEqual([30, 40]);
+  });
+
+  it("returns undefined for non-array targets", () => {
+    expect(evaluate('"hello".filter(value == "h")', context)).toBeUndefined();
+  });
+});
+
+describe("file properties and embeds", () => {
+  it("accesses file.properties as frontmatter alias", () => {
+    expect(evaluate("file.properties.title", context)).toBe("Test Note");
+    expect(evaluate("file.properties.status", context)).toBe("done");
+    expect(evaluate("file.properties.priority", context)).toBe(5);
+  });
+
+  it("accesses file.embeds", () => {
+    expect(evaluate("file.embeds", context)).toEqual(["image.png", "diagram.svg"]);
+  });
+
+  it("calls list methods on file.embeds", () => {
+    expect(evaluate("file.embeds.count()", context)).toBe(2);
+    expect(evaluate('file.embeds.contains("image.png")', context)).toBe(true);
+    expect(evaluate('file.embeds.contains("missing.png")', context)).toBe(false);
   });
 });
