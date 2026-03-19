@@ -145,6 +145,7 @@ class Lexer {
     if (ch === "-") return this.makeToken(TokenType.Minus, ch, start, this.index);
     if (ch === "*") return this.makeToken(TokenType.Star, ch, start, this.index);
     if (ch === "/") return this.makeToken(TokenType.Slash, ch, start, this.index);
+    if (ch === "%") return this.makeToken(TokenType.Percent, ch, start, this.index);
     if (ch === "(") return this.makeToken(TokenType.LeftParen, ch, start, this.index);
     if (ch === ")") return this.makeToken(TokenType.RightParen, ch, start, this.index);
     if (ch === "[") return this.makeToken(TokenType.LeftBracket, ch, start, this.index);

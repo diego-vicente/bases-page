@@ -52,12 +52,13 @@ describe("lex", () => {
   });
 
   it("tokenizes operators", () => {
-    const tokens = lex("+ - * / == != > < >= <= && || ! .");
+    const tokens = lex("+ - * / % == != > < >= <= && || ! .");
     expect(tokens.map((token) => token.type)).toEqual([
       TokenType.Plus,
       TokenType.Minus,
       TokenType.Star,
       TokenType.Slash,
+      TokenType.Percent,
       TokenType.EqualsEquals,
       TokenType.BangEquals,
       TokenType.Greater,

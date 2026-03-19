@@ -158,6 +158,8 @@ class Parser {
         return "*";
       case TokenType.Slash:
         return "/";
+      case TokenType.Percent:
+        return "%";
       case TokenType.EqualsEquals:
         return "==";
       case TokenType.BangEquals:
@@ -202,6 +204,7 @@ class Parser {
         return Precedence.Term;
       case TokenType.Star:
       case TokenType.Slash:
+      case TokenType.Percent:
         return Precedence.Factor;
       case TokenType.LeftParen:
       case TokenType.LeftBracket:

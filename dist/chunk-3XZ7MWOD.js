@@ -315,6 +315,7 @@ var Lexer = class {
     if (ch === "-") return this.makeToken("Minus" /* Minus */, ch, start, this.index);
     if (ch === "*") return this.makeToken("Star" /* Star */, ch, start, this.index);
     if (ch === "/") return this.makeToken("Slash" /* Slash */, ch, start, this.index);
+    if (ch === "%") return this.makeToken("Percent" /* Percent */, ch, start, this.index);
     if (ch === "(") return this.makeToken("LeftParen" /* LeftParen */, ch, start, this.index);
     if (ch === ")") return this.makeToken("RightParen" /* RightParen */, ch, start, this.index);
     if (ch === "[") return this.makeToken("LeftBracket" /* LeftBracket */, ch, start, this.index);
@@ -519,6 +520,8 @@ var Parser = class {
         return "*";
       case "Slash" /* Slash */:
         return "/";
+      case "Percent" /* Percent */:
+        return "%";
       case "EqualsEquals" /* EqualsEquals */:
         return "==";
       case "BangEquals" /* BangEquals */:
@@ -562,6 +565,7 @@ var Parser = class {
         return 5 /* Term */;
       case "Star" /* Star */:
       case "Slash" /* Slash */:
+      case "Percent" /* Percent */:
         return 6 /* Factor */;
       case "LeftParen" /* LeftParen */:
       case "LeftBracket" /* LeftBracket */:
@@ -674,7 +678,7 @@ function collectNumericArgs(args) {
 }
 function isFileValue(value) {
   if (!isRecord(value)) return false;
-  return typeof value.name === "string" && typeof value.path === "string" && typeof value.folder === "string" && typeof value.ext === "string" && Array.isArray(value.tags) && Array.isArray(value.links);
+  return typeof value.name === "string" && typeof value.path === "string" && typeof value.folder === "string" && typeof value.ext === "string" && Array.isArray(value.tags) && Array.isArray(value.links) && typeof value.basename === "string";
 }
 function isDateValue(value) {
   return value instanceof Date;
@@ -694,13 +698,32 @@ function parseDuration(value) {
   if (!trimmed) return void 0;
   const multipliers = {
     ms: 1,
+    millisecond: 1,
+    milliseconds: 1,
     s: 1e3,
+    sec: 1e3,
+    second: 1e3,
+    seconds: 1e3,
     m: 6e4,
+    min: 6e4,
+    minute: 6e4,
+    minutes: 6e4,
     h: 36e5,
+    hr: 36e5,
+    hour: 36e5,
+    hours: 36e5,
     d: 864e5,
+    day: 864e5,
+    days: 864e5,
     w: 6048e5,
+    week: 6048e5,
+    weeks: 6048e5,
     mo: 2592e6,
-    y: 31536e6
+    month: 2592e6,
+    months: 2592e6,
+    y: 31536e6,
+    year: 31536e6,
+    years: 31536e6
   };
   let index = 0;
   let total = 0;
@@ -727,6 +750,9 @@ function parseDuration(value) {
     if (start === index) return void 0;
     const amount = Number(trimmed.slice(start, index));
     if (Number.isNaN(amount)) return void 0;
+    while (index < trimmed.length && (trimmed[index] === " " || trimmed[index] === "	")) {
+      index += 1;
+    }
     const unitStart = index;
     while (index < trimmed.length && isAlpha2(trimmed[index] ?? "")) {
       index += 1;
@@ -785,11 +811,12 @@ function buildFileValue(path) {
   const lastSlash = normalized.lastIndexOf("/");
   const fileName = lastSlash >= 0 ? normalized.slice(lastSlash + 1) : normalized;
   const lastDot = fileName.lastIndexOf(".");
-  const name = lastDot > 0 ? fileName.slice(0, lastDot) : fileName;
+  const basename = lastDot > 0 ? fileName.slice(0, lastDot) : fileName;
   const ext = lastDot > 0 ? fileName.slice(lastDot + 1) : "";
   const folder = lastSlash >= 0 ? normalized.slice(0, lastSlash) : "";
   return {
-    name: name || fileName || normalized,
+    name: fileName || normalized,
+    basename: basename || fileName || normalized,
     path: normalized,
     folder,
     ext,
@@ -803,6 +830,7 @@ function getMethodTarget(value) {
   if (isDateValue(value)) return "date";
   if (Array.isArray(value)) return "list";
   if (isFileValue(value)) return "file";
+  if (isRecord(value)) return "object";
   return void 0;
 }
 registerGlobalFunction("if", ([cond, whenTrue, whenFalse]) => {
@@ -869,11 +897,16 @@ registerGlobalFunction("file", ([path]) => {
   if (!path.trim()) return void 0;
   return buildFileValue(path);
 });
-registerMethodFunction("file", "hasTag", (target, [tag]) => {
+registerMethodFunction("file", "hasTag", (target, args) => {
   if (!isFileValue(target)) return false;
-  const value = toStringValue(tag);
-  if (!value) return false;
-  return target.tags.includes(value);
+  if (args.length === 0) return false;
+  return args.every((tag) => {
+    const value = toStringValue(tag);
+    if (!value) return false;
+    if (target.tags.includes(value)) return true;
+    const prefix = value.endsWith("/") ? value : `${value}/`;
+    return target.tags.some((t) => t.startsWith(prefix));
+  });
 });
 registerMethodFunction("file", "hasLink", (target, [link]) => {
   if (!isFileValue(target)) return false;
@@ -941,10 +974,11 @@ registerMethodFunction("number", "toFixed", (target, [digits]) => {
   const decimals = toInteger(digits, 0);
   return value.toFixed(decimals);
 });
-registerMethodFunction("number", "round", (target) => {
+registerMethodFunction("number", "round", (target, [digits]) => {
   const value = toNumber(target);
   if (value === null) return void 0;
-  return Math.round(value);
+  const decimals = toInteger(digits, 0);
+  return roundTo(value, decimals);
 });
 registerMethodFunction("number", "floor", (target) => {
   const value = toNumber(target);
@@ -961,12 +995,73 @@ registerMethodFunction("number", "abs", (target) => {
   if (value === null) return void 0;
   return Math.abs(value);
 });
+function formatDateToken(date, token) {
+  const pad = (n, len = 2) => String(n).padStart(len, "0");
+  const y = date.getFullYear();
+  const M = date.getMonth() + 1;
+  const d = date.getDate();
+  const H = date.getHours();
+  const h = H % 12 || 12;
+  const m = date.getMinutes();
+  const s = date.getSeconds();
+  const A = H < 12 ? "AM" : "PM";
+  switch (token) {
+    case "YYYY":
+      return String(y);
+    case "YY":
+      return String(y).slice(-2);
+    case "MM":
+      return pad(M);
+    case "M":
+      return String(M);
+    case "DD":
+      return pad(d);
+    case "D":
+      return String(d);
+    case "HH":
+      return pad(H);
+    case "H":
+      return String(H);
+    case "hh":
+      return pad(h);
+    case "h":
+      return String(h);
+    case "mm":
+      return pad(m);
+    case "m":
+      return String(m);
+    case "ss":
+      return pad(s);
+    case "s":
+      return String(s);
+    case "A":
+      return A;
+    case "a":
+      return A.toLowerCase();
+    default:
+      return token;
+  }
+}
+function formatDate(date, format) {
+  const tokenPattern = /YYYY|YY|MM|M|DD|D|HH|H|hh|h|mm|m|ss|s|A|a/g;
+  let result = "";
+  let lastIndex = 0;
+  let match = tokenPattern.exec(format);
+  while (match !== null) {
+    result += format.slice(lastIndex, match.index);
+    result += formatDateToken(date, match[0]);
+    lastIndex = tokenPattern.lastIndex;
+    match = tokenPattern.exec(format);
+  }
+  result += format.slice(lastIndex);
+  return result;
+}
 registerMethodFunction("date", "format", (target, [format]) => {
   if (!isDateValue(target)) return void 0;
   const timestamp = target.getTime();
   if (Number.isNaN(timestamp)) return "";
   if (typeof format === "string" && format) {
-    return target.toLocaleString(void 0, { dateStyle: "medium", timeStyle: "short" });
+    return formatDate(target, format);
   }
   return target.toISOString();
 });
@@ -985,11 +1080,16 @@ registerMethodFunction(
   "day",
   (target) => isDateValue(target) ? target.getDate() : void 0
 );
-registerMethodFunction(
-  "date",
-  "time",
-  (target) => isDateValue(target) ? target.getTime() : void 0
-);
+registerMethodFunction("date", "date", (target) => {
+  if (!isDateValue(target)) return void 0;
+  const pad = (n, len = 2) => String(n).padStart(len, "0");
+  return `${target.getFullYear()}-${pad(target.getMonth() + 1)}-${pad(target.getDate())}`;
+});
+registerMethodFunction("date", "time", (target) => {
+  if (!isDateValue(target)) return void 0;
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${pad(target.getHours())}:${pad(target.getMinutes())}:${pad(target.getSeconds())}`;
+});
 registerMethodFunction("date", "relative", (target) => {
   if (!isDateValue(target)) return void 0;
   const time = target.getTime();
@@ -1044,6 +1144,114 @@ registerMethodFunction("list", "round", (target, [digits]) => {
     return roundTo(numberValue, decimals);
   });
 });
+registerMethodFunction("file", "asLink", (target) => {
+  if (!isFileValue(target)) return "";
+  const path = target.path.replace(/\.md$/, "");
+  return `[[${path}]]`;
+});
+registerMethodFunction("string", "containsAll", (target, args) => {
+  const value = toStringValue(target);
+  return args.every((needle) => value.includes(toStringValue(needle)));
+});
+registerMethodFunction("string", "containsAny", (target, args) => {
+  const value = toStringValue(target);
+  return args.some((needle) => value.includes(toStringValue(needle)));
+});
+registerMethodFunction("string", "split", (target, [separator]) => {
+  const value = toStringValue(target);
+  const sep = toStringValue(separator);
+  return value.split(sep);
+});
+registerMethodFunction("string", "title", (target) => {
+  const value = toStringValue(target);
+  return value.replace(/\b\w/g, (ch) => ch.toUpperCase());
+});
+registerMethodFunction("list", "contains", (target, [needle]) => {
+  if (!Array.isArray(target)) return false;
+  return target.includes(needle);
+});
+registerMethodFunction("list", "containsAll", (target, args) => {
+  if (!Array.isArray(target)) return false;
+  return args.every((needle) => target.includes(needle));
+});
+registerMethodFunction("list", "containsAny", (target, args) => {
+  if (!Array.isArray(target)) return false;
+  return args.some((needle) => target.includes(needle));
+});
+registerMethodFunction("list", "flat", (target) => {
+  if (!Array.isArray(target)) return void 0;
+  return target.flat();
+});
+registerMethodFunction("list", "isEmpty", (target) => {
+  if (!Array.isArray(target)) return true;
+  return target.length === 0;
+});
+registerMethodFunction("list", "join", (target, [separator]) => {
+  if (!Array.isArray(target)) return "";
+  const sep = separator === void 0 ? ", " : toStringValue(separator);
+  return target.map((item) => toStringValue(item)).join(sep);
+});
+registerMethodFunction("list", "reverse", (target) => {
+  if (!Array.isArray(target)) return void 0;
+  return [...target].reverse();
+});
+registerMethodFunction("list", "slice", (target, [start, end]) => {
+  if (!Array.isArray(target)) return void 0;
+  const startIndex = toInteger(start, 0);
+  if (end === void 0) return target.slice(startIndex);
+  const endIndex = toInteger(end, target.length);
+  return target.slice(startIndex, endIndex);
+});
+registerMethodFunction("list", "sort", (target) => {
+  if (!Array.isArray(target)) return void 0;
+  return [...target].sort((a, b) => {
+    if (typeof a === "number" && typeof b === "number") return a - b;
+    return String(a).localeCompare(String(b));
+  });
+});
+registerMethodFunction("list", "unique", (target) => {
+  if (!Array.isArray(target)) return void 0;
+  return [...new Set(target)];
+});
+registerMethodFunction("number", "isEmpty", (target) => {
+  const value = toNumber(target);
+  return value === null || Number.isNaN(value);
+});
+registerMethodFunction("object", "isEmpty", (target) => {
+  if (!isRecord(target)) return true;
+  return Object.keys(target).length === 0;
+});
+registerMethodFunction("object", "keys", (target) => {
+  if (!isRecord(target)) return [];
+  return Object.keys(target);
+});
+registerMethodFunction("object", "values", (target) => {
+  if (!isRecord(target)) return [];
+  return Object.values(target);
+});
+function registerAnyMethod(name, fn) {
+  const targets = ["string", "number", "date", "list", "file", "object"];
+  for (const target of targets) {
+    registerMethodFunction(target, name, fn);
+  }
+}
+registerAnyMethod("isTruthy", (target) => Boolean(target));
+registerAnyMethod("isType", (target, [typeName]) => {
+  const expected = toStringValue(typeName).toLowerCase();
+  if (typeof target === "string") return expected === "string";
+  if (typeof target === "number") return expected === "number";
+  if (isDateValue(target)) return expected === "date";
+  if (Array.isArray(target)) return expected === "list" || expected === "array";
+  if (isFileValue(target)) return expected === "file";
+  if (isRecord(target)) return expected === "object";
+  return false;
+});
+registerAnyMethod("toString", (target) => {
+  if (isDateValue(target)) return target.toISOString();
+  if (Array.isArray(target)) return target.map((item) => toStringValue(item)).join(", ");
+  if (isRecord(target)) return JSON.stringify(target);
+  return toStringValue(target);
+});
 
 // src/compiler/interpreter.ts
 function isRecord2(value) {
@@ -1066,8 +1274,22 @@ function toStringValue2(value) {
   return String(value);
 }
 function compareValues(left, right, operator) {
-  if (operator === "==") return left === right;
-  if (operator === "!=") return left !== right;
+  if (operator === "==") {
+    if (isDateValue2(left) && isDateValue2(right)) return left.getTime() === right.getTime();
+    return left === right;
+  }
+  if (operator === "!=") {
+    if (isDateValue2(left) && isDateValue2(right)) return left.getTime() !== right.getTime();
+    return left !== right;
+  }
+  if (isDateValue2(left) && isDateValue2(right)) {
+    const leftMs = left.getTime();
+    const rightMs = right.getTime();
+    if (operator === ">") return leftMs > rightMs;
+    if (operator === "<") return leftMs < rightMs;
+    if (operator === ">=") return leftMs >= rightMs;
+    if (operator === "<=") return leftMs <= rightMs;
+  }
   const leftNum = toNumber2(left);
   const rightNum = toNumber2(right);
   if (leftNum !== null && rightNum !== null) {
@@ -1084,8 +1306,17 @@ function compareValues(left, right, operator) {
   if (operator === "<=") return leftStr <= rightStr;
   return false;
 }
+function isDateValue2(value) {
+  return value instanceof Date && !Number.isNaN(value.getTime());
+}
 function applyBinary(operator, left, right) {
   if (operator === "+") {
+    if (isDateValue2(left) && typeof right === "number") {
+      return new Date(left.getTime() + right);
+    }
+    if (typeof left === "number" && isDateValue2(right)) {
+      return new Date(right.getTime() + left);
+    }
     if (typeof left === "string" || typeof right === "string") {
       return `${toStringValue2(left)}${toStringValue2(right)}`;
     }
@@ -1095,6 +1326,12 @@ function applyBinary(operator, left, right) {
     return leftNum + rightNum;
   }
   if (operator === "-") {
+    if (isDateValue2(left) && typeof right === "number") {
+      return new Date(left.getTime() - right);
+    }
+    if (isDateValue2(left) && isDateValue2(right)) {
+      return left.getTime() - right.getTime();
+    }
     const leftNum = toNumber2(left);
     const rightNum = toNumber2(right);
     if (leftNum === null || rightNum === null) return void 0;
@@ -1111,6 +1348,12 @@ function applyBinary(operator, left, right) {
     const rightNum = toNumber2(right);
     if (leftNum === null || rightNum === null) return void 0;
     return rightNum === 0 ? 0 : leftNum / rightNum;
+  }
+  if (operator === "%") {
+    const leftNum = toNumber2(left);
+    const rightNum = toNumber2(right);
+    if (leftNum === null || rightNum === null) return void 0;
+    return rightNum === 0 ? 0 : leftNum % rightNum;
   }
   return compareValues(left, right, operator);
 }
@@ -1156,6 +1399,24 @@ function resolveIdentifier(name, context) {
 }
 function resolveMember(target, name) {
   if (target === void 0 || target === null) return void 0;
+  if (isDateValue2(target)) {
+    switch (name) {
+      case "year":
+        return target.getFullYear();
+      case "month":
+        return target.getMonth() + 1;
+      case "day":
+        return target.getDate();
+      case "hour":
+        return target.getHours();
+      case "minute":
+        return target.getMinutes();
+      case "second":
+        return target.getSeconds();
+      default:
+        return void 0;
+    }
+  }
   if (Array.isArray(target)) {
     if (name === "length") return target.length;
     const index = Number(name);
@@ -1355,5 +1616,5 @@ function evaluateFilter(node, context) {
 }
 
 export { compile, evaluate, evaluateFilter, resolvePropertyValue };
-//# sourceMappingURL=chunk-YQWP27WF.js.map
-//# sourceMappingURL=chunk-YQWP27WF.js.map
+//# sourceMappingURL=chunk-3XZ7MWOD.js.map
+//# sourceMappingURL=chunk-3XZ7MWOD.js.map

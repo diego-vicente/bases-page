@@ -5,13 +5,17 @@ export type EvalContext = {
   note: Record<string, unknown>;
   file: {
     name: string;
+    basename: string;
     path: string;
     folder: string;
     ext: string;
     tags: string[];
     links: string[];
-    created?: string;
-    modified?: string;
+    created?: string | Date;
+    modified?: string | Date;
+    ctime?: Date;
+    mtime?: Date;
+    size?: number;
   };
   formula: Record<string, unknown>;
   self?: {
@@ -48,8 +52,23 @@ function toStringValue(value: unknown): string {
 }
 
 function compareValues(left: unknown, right: unknown, operator: string): boolean {
-  if (operator === "==") return left === right;
-  if (operator === "!=") return left !== right;
+  if (operator === "==") {
+    if (isDateValue(left) && isDateValue(right)) return left.getTime() === right.getTime();
+    return left === right;
+  }
+  if (operator === "!=") {
+    if (isDateValue(left) && isDateValue(right)) return left.getTime() !== right.getTime();
+    return left !== right;
+  }
+
+  if (isDateValue(left) && isDateValue(right)) {
+    const leftMs = left.getTime();
+    const rightMs = right.getTime();
+    if (operator === ">") return leftMs > rightMs;
+    if (operator === "<") return leftMs < rightMs;
+    if (operator === ">=") return leftMs >= rightMs;
+    if (operator === "<=") return leftMs <= rightMs;
+  }
 
   const leftNum = toNumber(left);
   const rightNum = toNumber(right);
@@ -69,8 +88,19 @@ function compareValues(left: unknown, right: unknown, operator: string): boolean
   return false;
 }
 
+function isDateValue(value: unknown): value is Date {
+  return value instanceof Date && !Number.isNaN(value.getTime());
+}
+
 function applyBinary(operator: string, left: unknown, right: unknown): unknown {
   if (operator === "+") {
+    // Date + number (duration in ms) = new Date
+    if (isDateValue(left) && typeof right === "number") {
+      return new Date(left.getTime() + right);
+    }
+    if (typeof left === "number" && isDateValue(right)) {
+      return new Date(right.getTime() + left);
+    }
     if (typeof left === "string" || typeof right === "string") {
       return `${toStringValue(left)}${toStringValue(right)}`;
     }
@@ -81,6 +111,14 @@ function applyBinary(operator: string, left: unknown, right: unknown): unknown {
   }
 
   if (operator === "-") {
+    // Date - number (duration in ms) = new Date
+    if (isDateValue(left) && typeof right === "number") {
+      return new Date(left.getTime() - right);
+    }
+    // Date - Date = number (duration in ms)
+    if (isDateValue(left) && isDateValue(right)) {
+      return left.getTime() - right.getTime();
+    }
     const leftNum = toNumber(left);
     const rightNum = toNumber(right);
     if (leftNum === null || rightNum === null) return undefined;
@@ -99,6 +137,13 @@ function applyBinary(operator: string, left: unknown, right: unknown): unknown {
     const rightNum = toNumber(right);
     if (leftNum === null || rightNum === null) return undefined;
     return rightNum === 0 ? 0 : leftNum / rightNum;
+  }
+
+  if (operator === "%") {
+    const leftNum = toNumber(left);
+    const rightNum = toNumber(right);
+    if (leftNum === null || rightNum === null) return undefined;
+    return rightNum === 0 ? 0 : leftNum % rightNum;
   }
 
   return compareValues(left, right, operator);
@@ -149,6 +194,24 @@ function resolveIdentifier(name: string, context: EvalContext): unknown {
 
 function resolveMember(target: unknown, name: string): unknown {
   if (target === undefined || target === null) return undefined;
+  if (isDateValue(target)) {
+    switch (name) {
+      case "year":
+        return target.getFullYear();
+      case "month":
+        return target.getMonth() + 1;
+      case "day":
+        return target.getDate();
+      case "hour":
+        return target.getHours();
+      case "minute":
+        return target.getMinutes();
+      case "second":
+        return target.getSeconds();
+      default:
+        return undefined;
+    }
+  }
   if (Array.isArray(target)) {
     if (name === "length") return target.length;
     const index = Number(name);

@@ -9,7 +9,7 @@ type Span = {
 
 type LiteralValue = string | number | boolean | null;
 type UnaryOperator = "!" | "-";
-type BinaryOperator = "+" | "-" | "*" | "/" | "==" | "!=" | ">" | "<" | ">=" | "<=" | "&&" | "||";
+type BinaryOperator = "+" | "-" | "*" | "/" | "%" | "==" | "!=" | ">" | "<" | ">=" | "<=" | "&&" | "||";
 type BaseNode = {
     type: string;
     span: Span;
@@ -102,13 +102,17 @@ type EvalContext = {
     note: Record<string, unknown>;
     file: {
         name: string;
+        basename: string;
         path: string;
         folder: string;
         ext: string;
         tags: string[];
         links: string[];
-        created?: string;
-        modified?: string;
+        created?: string | Date;
+        modified?: string | Date;
+        ctime?: Date;
+        mtime?: Date;
+        size?: number;
     };
     formula: Record<string, unknown>;
     self?: {

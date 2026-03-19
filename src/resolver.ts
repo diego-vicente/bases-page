@@ -16,11 +16,24 @@ function getFilePath(fileData: QuartzPluginData, slug: string): string {
   return slug ? `${slug}.md` : "";
 }
 
-function getBaseName(path: string): string {
+function getFileName(path: string): string {
   const lastSlash = path.lastIndexOf("/");
-  const base = lastSlash >= 0 ? path.slice(lastSlash + 1) : path;
-  const dot = base.lastIndexOf(".");
-  return dot > 0 ? base.slice(0, dot) : base;
+  return lastSlash >= 0 ? path.slice(lastSlash + 1) : path;
+}
+
+function getBaseName(path: string): string {
+  const fileName = getFileName(path);
+  const dot = fileName.lastIndexOf(".");
+  return dot > 0 ? fileName.slice(0, dot) : fileName;
+}
+
+function toDate(value: unknown): Date | undefined {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
+  if (typeof value === "string") {
+    const parsed = Date.parse(value);
+    if (!Number.isNaN(parsed)) return new Date(parsed);
+  }
+  return undefined;
 }
 
 function buildFileProperties(
@@ -30,7 +43,9 @@ function buildFileProperties(
 ): BasesEntry["fileProperties"] {
   const filePath = getFilePath(fileData, slug);
   const baseName = filePath ? getBaseName(filePath) : getBaseName(slug);
-  const name = baseName || slug.split("/").pop() || "Untitled";
+  const fileName = filePath ? getFileName(filePath) : getFileName(slug);
+  const name = fileName || slug.split("/").pop() || "Untitled";
+  const basename = baseName || slug.split("/").pop() || "Untitled";
   const lastSlash = filePath.lastIndexOf("/");
   const folder = lastSlash >= 0 ? filePath.slice(0, lastSlash) : "";
   const lastDot = filePath.lastIndexOf(".");
@@ -38,30 +53,22 @@ function buildFileProperties(
   const tags = normalizeStringArray(frontmatter.tags);
   const links = normalizeStringArray(fileData.links ?? fileData.outgoingLinks);
 
-  // Extract dates from file data if available
   const dates = fileData.dates as Record<string, unknown> | undefined;
-  const created =
-    typeof dates?.created === "string"
-      ? dates.created
-      : dates?.created instanceof Date
-        ? dates.created.toISOString()
-        : undefined;
-  const modified =
-    typeof dates?.modified === "string"
-      ? dates.modified
-      : dates?.modified instanceof Date
-        ? dates.modified.toISOString()
-        : undefined;
+  const ctime = toDate(dates?.created);
+  const mtime = toDate(dates?.modified);
 
   return {
     name,
+    basename,
     path: filePath,
     folder,
     ext,
     tags,
     links,
-    created,
-    modified,
+    created: ctime?.toISOString(),
+    modified: mtime?.toISOString(),
+    ctime,
+    mtime,
   };
 }
 
@@ -135,7 +142,7 @@ export function resolveBasesEntries(
     const title =
       typeof frontmatter.title === "string"
         ? frontmatter.title
-        : fileProperties.name || slug.split("/").pop() || "Untitled";
+        : fileProperties.basename || slug.split("/").pop() || "Untitled";
 
     entries.push({
       slug,

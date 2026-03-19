@@ -2,7 +2,7 @@ import type { EvalContext } from "./interpreter";
 
 export type GlobalFunction = (args: unknown[], context: EvalContext) => unknown;
 export type MethodFunction = (target: unknown, args: unknown[], context: EvalContext) => unknown;
-export type MethodTarget = "string" | "number" | "date" | "list" | "file";
+export type MethodTarget = "string" | "number" | "date" | "list" | "file" | "object";
 
 export const globalFunctions = new Map<string, GlobalFunction>();
 export const methodFunctions = new Map<MethodTarget, Map<string, MethodFunction>>();
@@ -80,7 +80,8 @@ function isFileValue(value: unknown): value is EvalContext["file"] {
     typeof value.folder === "string" &&
     typeof value.ext === "string" &&
     Array.isArray(value.tags) &&
-    Array.isArray(value.links)
+    Array.isArray(value.links) &&
+    typeof value.basename === "string"
   );
 }
 
@@ -106,13 +107,32 @@ function parseDuration(value: string): number | undefined {
 
   const multipliers: Record<string, number> = {
     ms: 1,
+    millisecond: 1,
+    milliseconds: 1,
     s: 1000,
+    sec: 1000,
+    second: 1000,
+    seconds: 1000,
     m: 60_000,
+    min: 60_000,
+    minute: 60_000,
+    minutes: 60_000,
     h: 3_600_000,
+    hr: 3_600_000,
+    hour: 3_600_000,
+    hours: 3_600_000,
     d: 86_400_000,
+    day: 86_400_000,
+    days: 86_400_000,
     w: 604_800_000,
+    week: 604_800_000,
+    weeks: 604_800_000,
     mo: 2_592_000_000,
+    month: 2_592_000_000,
+    months: 2_592_000_000,
     y: 31_536_000_000,
+    year: 31_536_000_000,
+    years: 31_536_000_000,
   };
 
   let index = 0;
@@ -143,6 +163,10 @@ function parseDuration(value: string): number | undefined {
     if (start === index) return undefined;
     const amount = Number(trimmed.slice(start, index));
     if (Number.isNaN(amount)) return undefined;
+
+    while (index < trimmed.length && (trimmed[index] === " " || trimmed[index] === "\t")) {
+      index += 1;
+    }
 
     const unitStart = index;
     while (index < trimmed.length && isAlpha(trimmed[index] ?? "")) {
@@ -208,12 +232,13 @@ function buildFileValue(path: string): EvalContext["file"] {
   const lastSlash = normalized.lastIndexOf("/");
   const fileName = lastSlash >= 0 ? normalized.slice(lastSlash + 1) : normalized;
   const lastDot = fileName.lastIndexOf(".");
-  const name = lastDot > 0 ? fileName.slice(0, lastDot) : fileName;
+  const basename = lastDot > 0 ? fileName.slice(0, lastDot) : fileName;
   const ext = lastDot > 0 ? fileName.slice(lastDot + 1) : "";
   const folder = lastSlash >= 0 ? normalized.slice(0, lastSlash) : "";
 
   return {
-    name: name || fileName || normalized,
+    name: fileName || normalized,
+    basename: basename || fileName || normalized,
     path: normalized,
     folder,
     ext,
@@ -228,6 +253,7 @@ function getMethodTarget(value: unknown): MethodTarget | undefined {
   if (isDateValue(value)) return "date";
   if (Array.isArray(value)) return "list";
   if (isFileValue(value)) return "file";
+  if (isRecord(value)) return "object";
   return undefined;
 }
 
@@ -316,11 +342,18 @@ registerGlobalFunction("file", ([path]) => {
   return buildFileValue(path);
 });
 
-registerMethodFunction("file", "hasTag", (target, [tag]) => {
+registerMethodFunction("file", "hasTag", (target, args) => {
   if (!isFileValue(target)) return false;
-  const value = toStringValue(tag);
-  if (!value) return false;
-  return target.tags.includes(value);
+  if (args.length === 0) return false;
+  return args.every((tag) => {
+    const value = toStringValue(tag);
+    if (!value) return false;
+    // Exact match
+    if (target.tags.includes(value)) return true;
+    // Nested tag matching: hasTag("work") matches "work/project"
+    const prefix = value.endsWith("/") ? value : `${value}/`;
+    return target.tags.some((t) => t.startsWith(prefix));
+  });
 });
 
 registerMethodFunction("file", "hasLink", (target, [link]) => {
@@ -402,10 +435,11 @@ registerMethodFunction("number", "toFixed", (target, [digits]) => {
   return value.toFixed(decimals);
 });
 
-registerMethodFunction("number", "round", (target) => {
+registerMethodFunction("number", "round", (target, [digits]) => {
   const value = toNumber(target);
   if (value === null) return undefined;
-  return Math.round(value);
+  const decimals = toInteger(digits, 0);
+  return roundTo(value, decimals);
 });
 
 registerMethodFunction("number", "floor", (target) => {
@@ -426,12 +460,77 @@ registerMethodFunction("number", "abs", (target) => {
   return Math.abs(value);
 });
 
+function formatDateToken(date: Date, token: string): string {
+  const pad = (n: number, len = 2) => String(n).padStart(len, "0");
+  const y = date.getFullYear();
+  const M = date.getMonth() + 1;
+  const d = date.getDate();
+  const H = date.getHours();
+  const h = H % 12 || 12;
+  const m = date.getMinutes();
+  const s = date.getSeconds();
+  const A = H < 12 ? "AM" : "PM";
+
+  switch (token) {
+    case "YYYY":
+      return String(y);
+    case "YY":
+      return String(y).slice(-2);
+    case "MM":
+      return pad(M);
+    case "M":
+      return String(M);
+    case "DD":
+      return pad(d);
+    case "D":
+      return String(d);
+    case "HH":
+      return pad(H);
+    case "H":
+      return String(H);
+    case "hh":
+      return pad(h);
+    case "h":
+      return String(h);
+    case "mm":
+      return pad(m);
+    case "m":
+      return String(m);
+    case "ss":
+      return pad(s);
+    case "s":
+      return String(s);
+    case "A":
+      return A;
+    case "a":
+      return A.toLowerCase();
+    default:
+      return token;
+  }
+}
+
+function formatDate(date: Date, format: string): string {
+  const tokenPattern = /YYYY|YY|MM|M|DD|D|HH|H|hh|h|mm|m|ss|s|A|a/g;
+  let result = "";
+  let lastIndex = 0;
+  let match = tokenPattern.exec(format);
+
+  while (match !== null) {
+    result += format.slice(lastIndex, match.index);
+    result += formatDateToken(date, match[0]);
+    lastIndex = tokenPattern.lastIndex;
+    match = tokenPattern.exec(format);
+  }
+  result += format.slice(lastIndex);
+  return result;
+}
+
 registerMethodFunction("date", "format", (target, [format]) => {
   if (!isDateValue(target)) return undefined;
   const timestamp = target.getTime();
   if (Number.isNaN(timestamp)) return "";
   if (typeof format === "string" && format) {
-    return target.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+    return formatDate(target, format);
   }
   return target.toISOString();
 });
@@ -448,9 +547,17 @@ registerMethodFunction("date", "day", (target) =>
   isDateValue(target) ? target.getDate() : undefined,
 );
 
-registerMethodFunction("date", "time", (target) =>
-  isDateValue(target) ? target.getTime() : undefined,
-);
+registerMethodFunction("date", "date", (target) => {
+  if (!isDateValue(target)) return undefined;
+  const pad = (n: number, len = 2) => String(n).padStart(len, "0");
+  return `${target.getFullYear()}-${pad(target.getMonth() + 1)}-${pad(target.getDate())}`;
+});
+
+registerMethodFunction("date", "time", (target) => {
+  if (!isDateValue(target)) return undefined;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(target.getHours())}:${pad(target.getMinutes())}:${pad(target.getSeconds())}`;
+});
 
 registerMethodFunction("date", "relative", (target) => {
   if (!isDateValue(target)) return undefined;
@@ -513,4 +620,135 @@ registerMethodFunction("list", "round", (target, [digits]) => {
     if (numberValue === null) return item;
     return roundTo(numberValue, decimals);
   });
+});
+
+registerMethodFunction("file", "asLink", (target) => {
+  if (!isFileValue(target)) return "";
+  const path = target.path.replace(/\.md$/, "");
+  return `[[${path}]]`;
+});
+
+registerMethodFunction("string", "containsAll", (target, args) => {
+  const value = toStringValue(target);
+  return args.every((needle) => value.includes(toStringValue(needle)));
+});
+
+registerMethodFunction("string", "containsAny", (target, args) => {
+  const value = toStringValue(target);
+  return args.some((needle) => value.includes(toStringValue(needle)));
+});
+
+registerMethodFunction("string", "split", (target, [separator]) => {
+  const value = toStringValue(target);
+  const sep = toStringValue(separator);
+  return value.split(sep);
+});
+
+registerMethodFunction("string", "title", (target) => {
+  const value = toStringValue(target);
+  return value.replace(/\b\w/g, (ch) => ch.toUpperCase());
+});
+
+registerMethodFunction("list", "contains", (target, [needle]) => {
+  if (!Array.isArray(target)) return false;
+  return target.includes(needle);
+});
+
+registerMethodFunction("list", "containsAll", (target, args) => {
+  if (!Array.isArray(target)) return false;
+  return args.every((needle) => target.includes(needle));
+});
+
+registerMethodFunction("list", "containsAny", (target, args) => {
+  if (!Array.isArray(target)) return false;
+  return args.some((needle) => target.includes(needle));
+});
+
+registerMethodFunction("list", "flat", (target) => {
+  if (!Array.isArray(target)) return undefined;
+  return target.flat();
+});
+
+registerMethodFunction("list", "isEmpty", (target) => {
+  if (!Array.isArray(target)) return true;
+  return target.length === 0;
+});
+
+registerMethodFunction("list", "join", (target, [separator]) => {
+  if (!Array.isArray(target)) return "";
+  const sep = separator === undefined ? ", " : toStringValue(separator);
+  return target.map((item) => toStringValue(item)).join(sep);
+});
+
+registerMethodFunction("list", "reverse", (target) => {
+  if (!Array.isArray(target)) return undefined;
+  return [...target].reverse();
+});
+
+registerMethodFunction("list", "slice", (target, [start, end]) => {
+  if (!Array.isArray(target)) return undefined;
+  const startIndex = toInteger(start, 0);
+  if (end === undefined) return target.slice(startIndex);
+  const endIndex = toInteger(end, target.length);
+  return target.slice(startIndex, endIndex);
+});
+
+registerMethodFunction("list", "sort", (target) => {
+  if (!Array.isArray(target)) return undefined;
+  return [...target].sort((a, b) => {
+    if (typeof a === "number" && typeof b === "number") return a - b;
+    return String(a).localeCompare(String(b));
+  });
+});
+
+registerMethodFunction("list", "unique", (target) => {
+  if (!Array.isArray(target)) return undefined;
+  return [...new Set(target)];
+});
+
+registerMethodFunction("number", "isEmpty", (target) => {
+  const value = toNumber(target);
+  return value === null || Number.isNaN(value);
+});
+
+registerMethodFunction("object", "isEmpty", (target) => {
+  if (!isRecord(target)) return true;
+  return Object.keys(target).length === 0;
+});
+
+registerMethodFunction("object", "keys", (target) => {
+  if (!isRecord(target)) return [];
+  return Object.keys(target);
+});
+
+registerMethodFunction("object", "values", (target) => {
+  if (!isRecord(target)) return [];
+  return Object.values(target);
+});
+
+function registerAnyMethod(name: string, fn: MethodFunction): void {
+  const targets: MethodTarget[] = ["string", "number", "date", "list", "file", "object"];
+  for (const target of targets) {
+    registerMethodFunction(target, name, fn);
+  }
+}
+
+registerAnyMethod("isTruthy", (target) => Boolean(target));
+
+registerAnyMethod("isType", (target, [typeName]) => {
+  const expected = toStringValue(typeName).toLowerCase();
+  if (typeof target === "string") return expected === "string";
+  if (typeof target === "number") return expected === "number";
+  if (isDateValue(target)) return expected === "date";
+  if (Array.isArray(target)) return expected === "list" || expected === "array";
+  if (isFileValue(target)) return expected === "file";
+  if (isRecord(target)) return expected === "object";
+  return false;
+});
+
+registerAnyMethod("toString", (target) => {
+  if (isDateValue(target)) return target.toISOString();
+  if (Array.isArray(target)) return target.map((item) => toStringValue(item)).join(", ");
+  if (isRecord(target)) return JSON.stringify(target);
+  return toStringValue(target);
 });

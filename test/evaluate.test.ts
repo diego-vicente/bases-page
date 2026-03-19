@@ -10,7 +10,8 @@ const context = {
     score: 42,
   },
   file: {
-    name: "test-note",
+    name: "test-note.md",
+    basename: "test-note",
     path: "notes/test-note.md",
     folder: "notes",
     ext: "md",
@@ -31,6 +32,10 @@ describe("evaluate", () => {
     expect(evaluate("10 - 3", context)).toBe(7);
     expect(evaluate("2 * 3", context)).toBe(6);
     expect(evaluate("10 / 2", context)).toBe(5);
+    expect(evaluate("10 % 3", context)).toBe(1);
+    expect(evaluate("7 % 2", context)).toBe(1);
+    expect(evaluate("10 % 5", context)).toBe(0);
+    expect(evaluate("10 % 0", context)).toBe(0);
   });
 
   it("evaluates string concatenation", () => {
@@ -55,7 +60,7 @@ describe("evaluate", () => {
 
   it("resolves property access", () => {
     expect(evaluate("title", context)).toBe("Test Note");
-    expect(evaluate("file.name", context)).toBe("test-note");
+    expect(evaluate("file.name", context)).toBe("test-note.md");
     expect(evaluate("formula.doubled", context)).toBe(84);
     expect(evaluate("note.status", context)).toBe("done");
   });

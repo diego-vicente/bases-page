@@ -142,14 +142,17 @@ describe("resolveBasesEntries", () => {
     const result = resolveBasesEntries(basesData, baseFiles);
     const alpha = result.entries.find((entry) => entry.slug === "notes/alpha");
     expect(alpha?.fileProperties).toEqual({
-      name: "alpha",
+      name: "alpha.md",
+      basename: "alpha",
       path: "notes/alpha.md",
       folder: "notes",
       ext: "md",
       tags: ["work", "important"],
       links: ["beta"],
-      created: "2024-01-01T00:00:00Z",
-      modified: "2024-01-02T00:00:00Z",
+      created: "2024-01-01T00:00:00.000Z",
+      modified: "2024-01-02T00:00:00.000Z",
+      ctime: new Date("2024-01-01T00:00:00Z"),
+      mtime: new Date("2024-01-02T00:00:00Z"),
     });
   });
 

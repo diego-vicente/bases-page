@@ -17,6 +17,7 @@ export enum TokenType {
   Minus = "Minus",
   Star = "Star",
   Slash = "Slash",
+  Percent = "Percent",
   Bang = "Bang",
   EqualsEquals = "EqualsEquals",
   BangEquals = "BangEquals",

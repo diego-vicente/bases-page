@@ -8,14 +8,22 @@ const context = {
     title: "Test Note",
     status: "done",
     numbers: [1, 2, 3],
+    nested: [
+      [1, 2],
+      [3, 4],
+    ],
+    mixed: [3, 1, 2],
+    dupes: [1, 2, 2, 3, 3],
+    meta: { key: "value", count: 5 },
     eventDate,
   },
   file: {
-    name: "test",
+    name: "test.md",
+    basename: "test",
     path: "notes/test.md",
     folder: "notes",
     ext: "md",
-    tags: ["todo", "important"],
+    tags: ["todo", "important", "work/project"],
     links: ["other-note"],
     created: "2024-01-01T00:00:00Z",
     modified: "2024-06-15T00:00:00Z",
@@ -37,6 +45,23 @@ describe("string methods", () => {
     expect(evaluate('"ha".repeat(3)', context)).toBe("hahaha");
     expect(evaluate('"abc".reverse()', context)).toBe("cba");
   });
+
+  it("handles containsAll and containsAny", () => {
+    expect(evaluate('"hello world".containsAll("hello", "world")', context)).toBe(true);
+    expect(evaluate('"hello world".containsAll("hello", "missing")', context)).toBe(false);
+    expect(evaluate('"hello world".containsAny("missing", "world")', context)).toBe(true);
+    expect(evaluate('"hello world".containsAny("missing", "nope")', context)).toBe(false);
+  });
+
+  it("handles split", () => {
+    expect(evaluate('"a,b,c".split(",")', context)).toEqual(["a", "b", "c"]);
+    expect(evaluate('"hello".split("")', context)).toEqual(["h", "e", "l", "l", "o"]);
+  });
+
+  it("handles title case", () => {
+    expect(evaluate('"hello world".title()', context)).toBe("Hello World");
+    expect(evaluate('"the quick brown fox".title()', context)).toBe("The Quick Brown Fox");
+  });
 });
 
 describe("number methods", () => {
@@ -46,6 +71,15 @@ describe("number methods", () => {
     expect(evaluate("3.2.floor()", context)).toBe(3);
     expect(evaluate("3.2.ceil()", context)).toBe(4);
     expect(evaluate("(-3).abs()", context)).toBe(3);
+  });
+
+  it("supports round with digits", () => {
+    expect(evaluate("3.14159.round(2)", context)).toBe(3.14);
+    expect(evaluate("3.14159.round(4)", context)).toBe(3.1416);
+  });
+
+  it("reports isEmpty for numbers", () => {
+    expect(evaluate("42 .isEmpty()", context)).toBe(false);
   });
 });
 
@@ -59,7 +93,44 @@ describe("date functions", () => {
     expect(evaluate("eventDate.year()", context)).toBe(2024);
     expect(evaluate("eventDate.month()", context)).toBe(1);
     expect(evaluate("eventDate.day()", context)).toBe(15);
-    expect(evaluate("eventDate.time()", context)).toBe(eventDate.getTime());
+    expect(evaluate("eventDate.time()", context)).toBe("12:00:00");
+  });
+
+  it("provides date.date() method", () => {
+    expect(evaluate("eventDate.date()", context)).toBe("2024-01-15");
+  });
+
+  it("formats dates with tokens", () => {
+    expect(evaluate('eventDate.format("YYYY-MM-DD")', context)).toBe("2024-01-15");
+    expect(evaluate('eventDate.format("HH:mm")', context)).toBe("12:00");
+    expect(evaluate('eventDate.format("M/D/YY")', context)).toBe("1/15/24");
+  });
+
+  it("supports date field access as properties", () => {
+    expect(evaluate("eventDate.year", context)).toBe(2024);
+    expect(evaluate("eventDate.month", context)).toBe(1);
+    expect(evaluate("eventDate.day", context)).toBe(15);
+    expect(evaluate("eventDate.hour", context)).toBe(12);
+    expect(evaluate("eventDate.minute", context)).toBe(0);
+    expect(evaluate("eventDate.second", context)).toBe(0);
+  });
+
+  it("supports date arithmetic", () => {
+    const oneDay = 86_400_000;
+    const result = evaluate(`eventDate + ${oneDay}`, context);
+    expect(result).toBeInstanceOf(Date);
+    expect((result as Date).getDate()).toBe(16);
+  });
+
+  it("supports date subtraction", () => {
+    const result = evaluate('date("2024-01-15") - date("2024-01-10")', context);
+    expect(result).toBe(5 * 86_400_000);
+  });
+
+  it("compares dates", () => {
+    expect(evaluate('date("2024-01-15") > date("2024-01-10")', context)).toBe(true);
+    expect(evaluate('date("2024-01-15") == date("2024-01-15")', context)).toBe(true);
+    expect(evaluate('date("2024-01-10") < date("2024-01-15")', context)).toBe(true);
   });
 });
 
@@ -76,17 +147,75 @@ describe("list functions and methods", () => {
     expect(evaluate("numbers.min()", context)).toBe(1);
     expect(evaluate("numbers.max()", context)).toBe(3);
   });
+
+  it("supports contains", () => {
+    expect(evaluate("numbers.contains(2)", context)).toBe(true);
+    expect(evaluate("numbers.contains(99)", context)).toBe(false);
+  });
+
+  it("supports containsAll and containsAny", () => {
+    expect(evaluate("numbers.containsAll(1, 3)", context)).toBe(true);
+    expect(evaluate("numbers.containsAll(1, 99)", context)).toBe(false);
+    expect(evaluate("numbers.containsAny(99, 2)", context)).toBe(true);
+    expect(evaluate("numbers.containsAny(98, 99)", context)).toBe(false);
+  });
+
+  it("supports flat", () => {
+    expect(evaluate("nested.flat()", context)).toEqual([1, 2, 3, 4]);
+  });
+
+  it("supports isEmpty", () => {
+    expect(evaluate("[].isEmpty()", context)).toBe(true);
+    expect(evaluate("numbers.isEmpty()", context)).toBe(false);
+  });
+
+  it("supports join", () => {
+    expect(evaluate('numbers.join(", ")', context)).toBe("1, 2, 3");
+    expect(evaluate('numbers.join("-")', context)).toBe("1-2-3");
+    expect(evaluate("numbers.join()", context)).toBe("1, 2, 3");
+  });
+
+  it("supports reverse", () => {
+    expect(evaluate("numbers.reverse()", context)).toEqual([3, 2, 1]);
+  });
+
+  it("supports slice", () => {
+    expect(evaluate("numbers.slice(1)", context)).toEqual([2, 3]);
+    expect(evaluate("numbers.slice(0, 2)", context)).toEqual([1, 2]);
+  });
+
+  it("supports sort", () => {
+    expect(evaluate("mixed.sort()", context)).toEqual([1, 2, 3]);
+  });
+
+  it("supports unique", () => {
+    expect(evaluate("dupes.unique()", context)).toEqual([1, 2, 3]);
+  });
 });
 
 describe("duration and file helpers", () => {
-  it("parses durations", () => {
+  it("parses durations with short units", () => {
     expect(evaluate('duration("1h")', context)).toBe(3_600_000);
     expect(evaluate('duration("30m")', context)).toBe(1_800_000);
   });
 
+  it("parses durations with long-form units", () => {
+    expect(evaluate('duration("1 hour")', context)).toBe(3_600_000);
+    expect(evaluate('duration("2 hours")', context)).toBe(7_200_000);
+    expect(evaluate('duration("1 day")', context)).toBe(86_400_000);
+    expect(evaluate('duration("3 days")', context)).toBe(3 * 86_400_000);
+    expect(evaluate('duration("1 week")', context)).toBe(604_800_000);
+    expect(evaluate('duration("2 weeks")', context)).toBe(2 * 604_800_000);
+    expect(evaluate('duration("1 month")', context)).toBe(2_592_000_000);
+    expect(evaluate('duration("1 year")', context)).toBe(31_536_000_000);
+    expect(evaluate('duration("30 seconds")', context)).toBe(30_000);
+    expect(evaluate('duration("5 minutes")', context)).toBe(300_000);
+  });
+
   it("builds file objects", () => {
     expect(evaluate('file("notes/test.md")', context)).toEqual({
-      name: "test",
+      name: "test.md",
+      basename: "test",
       path: "notes/test.md",
       folder: "notes",
       ext: "md",
@@ -102,6 +231,21 @@ describe("duration and file helpers", () => {
     expect(evaluate('file.inFolder("notes/archive")', context)).toBe(false);
     expect(evaluate('file.hasProperty("status")', context)).toBe(true);
   });
+
+  it("supports file.asLink()", () => {
+    expect(evaluate("file.asLink()", context)).toBe("[[notes/test]]");
+  });
+
+  it("supports hasTag with nested tag matching", () => {
+    expect(evaluate('file.hasTag("work")', context)).toBe(true);
+    expect(evaluate('file.hasTag("work/project")', context)).toBe(true);
+    expect(evaluate('file.hasTag("missing")', context)).toBe(false);
+  });
+
+  it("supports hasTag with variadic args", () => {
+    expect(evaluate('file.hasTag("todo", "important")', context)).toBe(true);
+    expect(evaluate('file.hasTag("todo", "missing")', context)).toBe(false);
+  });
 });
 
 describe("link helpers", () => {
@@ -110,5 +254,44 @@ describe("link helpers", () => {
     expect(evaluate('link("page", "display")', context)).toBe("[[page|display]]");
     expect(evaluate('image("photo.png")', context)).toBe("![[photo.png]]");
     expect(evaluate('icon("star")', context)).toBe(":star:");
+  });
+});
+
+describe("any-target methods", () => {
+  it("evaluates isTruthy", () => {
+    expect(evaluate('"hello".isTruthy()', context)).toBe(true);
+    expect(evaluate('"".isTruthy()', context)).toBe(false);
+    expect(evaluate("42 .isTruthy()", context)).toBe(true);
+    expect(evaluate("0 .isTruthy()", context)).toBe(false);
+    expect(evaluate("numbers.isTruthy()", context)).toBe(true);
+  });
+
+  it("evaluates isType", () => {
+    expect(evaluate('"hello".isType("string")', context)).toBe(true);
+    expect(evaluate('"hello".isType("number")', context)).toBe(false);
+    expect(evaluate('42 .isType("number")', context)).toBe(true);
+    expect(evaluate('numbers.isType("list")', context)).toBe(true);
+    expect(evaluate('eventDate.isType("date")', context)).toBe(true);
+    expect(evaluate('file.isType("file")', context)).toBe(true);
+  });
+
+  it("evaluates toString", () => {
+    expect(evaluate('"hello".toString()', context)).toBe("hello");
+    expect(evaluate("42 .toString()", context)).toBe("42");
+    expect(evaluate("numbers.toString()", context)).toBe("1, 2, 3");
+  });
+});
+
+describe("object methods", () => {
+  it("supports isEmpty", () => {
+    expect(evaluate("meta.isEmpty()", context)).toBe(false);
+  });
+
+  it("supports keys", () => {
+    expect(evaluate("meta.keys()", context)).toEqual(["key", "count"]);
+  });
+
+  it("supports values", () => {
+    expect(evaluate("meta.values()", context)).toEqual(["value", 5]);
   });
 });

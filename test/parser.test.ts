@@ -152,6 +152,12 @@ describe("expression parser", () => {
       left: { type: "Literal", value: 3 },
       right: { type: "Literal", value: 4 },
     });
+    expect(normalizeExpression(parseExpression("10 % 3"))).toEqual({
+      type: "Binary",
+      operator: "%",
+      left: { type: "Literal", value: 10 },
+      right: { type: "Literal", value: 3 },
+    });
     expect(normalizeExpression(parseExpression("a > b"))).toEqual({
       type: "Binary",
       operator: ">",

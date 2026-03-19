@@ -211,13 +211,17 @@ export interface BasesEntry {
   /** File metadata properties */
   fileProperties: {
     name: string;
+    basename: string;
     path: string;
     folder: string;
     ext: string;
     tags: string[];
     links: string[];
-    created?: string;
-    modified?: string;
+    created?: string | Date;
+    modified?: string | Date;
+    ctime?: Date;
+    mtime?: Date;
+    size?: number;
   };
   /** Computed formula values */
   formulaValues: Record<string, unknown>;

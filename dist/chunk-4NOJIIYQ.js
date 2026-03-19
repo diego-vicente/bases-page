@@ -1,6 +1,6 @@
 import { createRequire } from 'module';
 import { viewRegistry, registerCustomViews } from './chunk-2AUMER56.js';
-import { evaluate, evaluateFilter, resolvePropertyValue } from './chunk-YQWP27WF.js';
+import { evaluate, evaluateFilter, resolvePropertyValue } from './chunk-3XZ7MWOD.js';
 import { jsx, jsxs, Fragment } from 'preact/jsx-runtime';
 
 createRequire(import.meta.url);
@@ -27,16 +27,29 @@ function getFilePath(fileData, slug) {
   if (typeof fileData.filePath === "string") return fileData.filePath;
   return slug ? `${slug}.md` : "";
 }
-function getBaseName(path) {
+function getFileName(path) {
   const lastSlash = path.lastIndexOf("/");
-  const base = lastSlash >= 0 ? path.slice(lastSlash + 1) : path;
-  const dot = base.lastIndexOf(".");
-  return dot > 0 ? base.slice(0, dot) : base;
+  return lastSlash >= 0 ? path.slice(lastSlash + 1) : path;
+}
+function getBaseName(path) {
+  const fileName = getFileName(path);
+  const dot = fileName.lastIndexOf(".");
+  return dot > 0 ? fileName.slice(0, dot) : fileName;
+}
+function toDate(value) {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
+  if (typeof value === "string") {
+    const parsed = Date.parse(value);
+    if (!Number.isNaN(parsed)) return new Date(parsed);
+  }
+  return void 0;
 }
 function buildFileProperties(fileData, slug, frontmatter) {
   const filePath = getFilePath(fileData, slug);
   const baseName = filePath ? getBaseName(filePath) : getBaseName(slug);
-  const name = baseName || slug.split("/").pop() || "Untitled";
+  const fileName = filePath ? getFileName(filePath) : getFileName(slug);
+  const name = fileName || slug.split("/").pop() || "Untitled";
+  const basename = baseName || slug.split("/").pop() || "Untitled";
   const lastSlash = filePath.lastIndexOf("/");
   const folder = lastSlash >= 0 ? filePath.slice(0, lastSlash) : "";
   const lastDot = filePath.lastIndexOf(".");
@@ -44,17 +57,20 @@ function buildFileProperties(fileData, slug, frontmatter) {
   const tags = normalizeStringArray(frontmatter.tags);
   const links = normalizeStringArray(fileData.links ?? fileData.outgoingLinks);
   const dates = fileData.dates;
-  const created = typeof dates?.created === "string" ? dates.created : dates?.created instanceof Date ? dates.created.toISOString() : void 0;
-  const modified = typeof dates?.modified === "string" ? dates.modified : dates?.modified instanceof Date ? dates.modified.toISOString() : void 0;
+  const ctime = toDate(dates?.created);
+  const mtime = toDate(dates?.modified);
   return {
     name,
+    basename,
     path: filePath,
     folder,
     ext,
     tags,
     links,
-    created,
-    modified
+    created: ctime?.toISOString(),
+    modified: mtime?.toISOString(),
+    ctime,
+    mtime
   };
 }
 function compareSort(a, b) {
@@ -107,7 +123,7 @@ function resolveBasesEntries(basesData, allFiles, view, selfContext) {
     }
     if (!evaluateFilter(basesData.filters, context)) continue;
     if (view?.filters && !evaluateFilter(view.filters, context)) continue;
-    const title = typeof frontmatter.title === "string" ? frontmatter.title : fileProperties.name || slug.split("/").pop() || "Untitled";
+    const title = typeof frontmatter.title === "string" ? frontmatter.title : fileProperties.basename || slug.split("/").pop() || "Untitled";
     entries.push({
       slug,
       title,
@@ -716,5 +732,5 @@ var BasesBody_default = ((opts) => {
 });
 
 export { BasesBody_default, ViewSelector, i18n, registerBuiltinViews, resolveBasesEntries };
-//# sourceMappingURL=chunk-7VF6ACDU.js.map
-//# sourceMappingURL=chunk-7VF6ACDU.js.map
+//# sourceMappingURL=chunk-4NOJIIYQ.js.map
+//# sourceMappingURL=chunk-4NOJIIYQ.js.map
