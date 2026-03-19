@@ -7,6 +7,7 @@ import {
   getColumns,
   renderCellValue,
 } from "../src/components/shared/cell";
+import { slugifyPath } from "../src/util/path";
 import type { BasesData, BasesEntry, BasesView } from "../src/types";
 
 const sampleEntry: BasesEntry = {
@@ -216,5 +217,98 @@ describe("renderCellValue", () => {
     const obj = { unknown: "value" };
     const result = renderCellValue(obj, ctx) as { type: string };
     expect(result.type).toBe("code");
+  });
+
+  it("slugifies file paths with spaces in href", () => {
+    const fileObj = {
+      name: "Arcanist's Folly.md",
+      basename: "Arcanist's Folly",
+      path: "Compendium/Species/Ratkin/Arcanist's Folly.md",
+      folder: "Compendium/Species/Ratkin",
+      ext: "md",
+      tags: [],
+      links: [],
+    };
+    const result = renderCellValue(fileObj, { slug: "Compendium/Species" }) as {
+      type: string;
+      props: Record<string, unknown>;
+    };
+    expect(result.type).toBe("a");
+    const href = result.props.href as string;
+    expect(href).not.toContain(" ");
+    expect(href).toContain("Arcanist's-Folly");
+  });
+
+  it("slugifies file paths with multiple spaces and special chars in href", () => {
+    const fileObj = {
+      name: "Deific Exaltation.md",
+      basename: "Deific Exaltation",
+      path: "Compendium/Species/Ratkin/Deific Exaltation.md",
+      folder: "Compendium/Species/Ratkin",
+      ext: "md",
+      tags: [],
+      links: [],
+    };
+    const result = renderCellValue(fileObj, { slug: "Compendium/Species" }) as {
+      type: string;
+      props: Record<string, unknown>;
+    };
+    expect(result.type).toBe("a");
+    const href = result.props.href as string;
+    expect(href).not.toContain(" ");
+    expect(href).toContain("Deific-Exaltation");
+  });
+
+  it("slugifies paths with ampersands and percent signs", () => {
+    const fileObj = {
+      name: "Arts & Crafts 100%.md",
+      basename: "Arts & Crafts 100%",
+      path: "Notes/Arts & Crafts 100%.md",
+      folder: "Notes",
+      ext: "md",
+      tags: [],
+      links: [],
+    };
+    const result = renderCellValue(fileObj, { slug: "Notes/index" }) as {
+      type: string;
+      props: Record<string, unknown>;
+    };
+    const href = result.props.href as string;
+    expect(href).not.toContain(" ");
+    expect(href).not.toContain("&");
+    expect(href).not.toContain("%");
+    expect(href).toContain("Arts--and--Crafts-100-percent");
+  });
+});
+
+describe("slugifyPath", () => {
+  it("replaces spaces with hyphens", () => {
+    expect(slugifyPath("Arcanist's Folly")).toBe("Arcanist's-Folly");
+  });
+
+  it("replaces ampersands with -and-", () => {
+    expect(slugifyPath("Arts & Crafts")).toBe("Arts--and--Crafts");
+  });
+
+  it("replaces percent with -percent", () => {
+    expect(slugifyPath("100%")).toBe("100-percent");
+  });
+
+  it("removes question marks and hash signs", () => {
+    expect(slugifyPath("What?#Section")).toBe("WhatSection");
+  });
+
+  it("handles multi-segment paths", () => {
+    expect(slugifyPath("Compendium/Species/Ratkin/Deific Exaltation")).toBe(
+      "Compendium/Species/Ratkin/Deific-Exaltation",
+    );
+  });
+
+  it("strips trailing slashes", () => {
+    expect(slugifyPath("folder/")).toBe("folder");
+  });
+
+  it("leaves clean paths unchanged", () => {
+    expect(slugifyPath("Compendium/Species/Dryad/Apple")).toBe("Compendium/Species/Dryad/Apple");
   });
 });

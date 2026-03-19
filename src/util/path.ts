@@ -28,6 +28,25 @@ export function resolveRelative(current: string, target: string): string {
   return prefix + targetParts.slice(common).join("/");
 }
 
+/**
+ * Slugify a file path for use as an href, matching Quartz's _sluggify behavior.
+ * Replaces whitespace→hyphens, &→-and-, %→-percent, removes ? and #.
+ */
+export function slugifyPath(path: string): string {
+  return path
+    .split("/")
+    .map((segment) =>
+      segment
+        .replace(/\s/g, "-")
+        .replace(/&/g, "-and-")
+        .replace(/%/g, "-percent")
+        .replace(/\?/g, "")
+        .replace(/#/g, ""),
+    )
+    .join("/")
+    .replace(/\/$/, "");
+}
+
 export function pathToRoot(slug: string): string {
   const parts = simplifySlug(slug).split("/").filter(Boolean);
   if (parts.length <= 1) return ".";

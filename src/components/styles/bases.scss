@@ -97,6 +97,12 @@
     background: var(--highlight);
     word-break: break-all;
   }
+
+  td .bases-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
 }
 
 .bases-sort-indicator {

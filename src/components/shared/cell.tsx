@@ -2,7 +2,7 @@ import type { ComponentChild } from "preact";
 
 import type { BasesData, BasesEntry, BasesView } from "../../types";
 import { renderTextWithLinks } from "./links";
-import { resolveRelative } from "../../util/path";
+import { resolveRelative, slugifyPath } from "../../util/path";
 
 type RenderCtx = { slug: string };
 
@@ -61,7 +61,7 @@ export function renderCellValue(value: unknown, ctx: RenderCtx): ComponentChild 
 
   if (typeof value === "object") {
     if (isFileValue(value)) {
-      const href = resolveRelative(ctx.slug, value.path.replace(/\.md$/, ""));
+      const href = resolveRelative(ctx.slug, slugifyPath(value.path.replace(/\.md$/, "")));
       return (
         <a href={href} class="internal">
           {value.basename}
