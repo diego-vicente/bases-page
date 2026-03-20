@@ -68,7 +68,7 @@ const BoardView: ViewRenderer = ({
             </div>
             <div class="bases-board-column-body">
               {group.entries.map((entry) => {
-                const ctx = { slug: entry.slug, allSlugs, linkResolution };
+                const ctx = { slug, allSlugs, linkResolution };
                 return (
                   <div class="bases-board-card">
                     <a

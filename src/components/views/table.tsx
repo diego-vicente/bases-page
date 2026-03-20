@@ -49,7 +49,7 @@ function renderRow(
   linkResolution: "absolute" | "relative" | "shortest",
 ) {
   const transformOpts = { strategy: linkResolution, allSlugs: allSlugs as FullSlug[] };
-  const ctx = { slug: entry.slug, allSlugs, linkResolution };
+  const ctx = { slug, allSlugs, linkResolution };
   return (
     <tr>
       {columns.map((column) => {

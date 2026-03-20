@@ -2,7 +2,7 @@ import { createRequire } from 'module';
 import { viewRegistry, registerCustomViews } from './chunk-2AUMER56.js';
 import { evaluate, evaluateFilter, resolvePropertyValue } from './chunk-AA6BIPOH.js';
 import { jsx, jsxs, Fragment } from 'preact/jsx-runtime';
-import { transformLink } from '@quartz-community/utils';
+import { transformLink, slugifyPath } from '@quartz-community/utils';
 
 createRequire(import.meta.url);
 function ViewSelector({ views, activeIndex }) {
@@ -200,50 +200,19 @@ var locales = {
 function i18n(locale) {
   return locales[locale] || en_US_default;
 }
-
-// src/util/path.ts
-function simplifySlug(slug) {
-  if (slug.endsWith("/index")) return slug.slice(0, -6);
-  return slug;
-}
-function resolveRelative(current, target) {
-  const simpleCurrent = simplifySlug(current);
-  const simpleTarget = simplifySlug(target);
-  const currentParts = simpleCurrent.split("/").filter(Boolean);
-  const targetParts = simpleTarget.split("/").filter(Boolean);
-  currentParts.pop();
-  let prefix = "";
-  const commonLength = Math.min(currentParts.length, targetParts.length);
-  let common = 0;
-  for (let i = 0; i < commonLength; i++) {
-    if (currentParts[i] === targetParts[i]) {
-      common++;
-    } else {
-      break;
-    }
-  }
-  const ups = currentParts.length - common;
-  if (ups > 0) {
-    prefix = "../".repeat(ups);
-  } else {
-    prefix = "./";
-  }
-  return prefix + targetParts.slice(common).join("/");
-}
-function slugifyPath(path) {
-  return path.split("/").map(
-    (segment) => segment.replace(/\s/g, "-").replace(/&/g, "-and-").replace(/%/g, "-percent").replace(/\?/g, "").replace(/#/g, "")
-  ).join("/").replace(/\/$/, "");
-}
 var WIKILINK_RE = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
 var MDLINK_RE = /\[([^\]]*)\]\(([^)]+)\)/g;
 var URL_RE = /https?:\/\/[^\s<>]+/g;
 function renderTextWithLinks(text, ctx) {
   const segments = [];
+  const transformOpts = {
+    strategy: ctx.linkResolution,
+    allSlugs: ctx.allSlugs
+  };
   for (const match of text.matchAll(WIKILINK_RE)) {
     const target = match[1] ?? "";
     const display = match[2] ?? target;
-    const href = resolveRelative(ctx.slug, target);
+    const href = transformLink(ctx.slug, target, transformOpts);
     segments.push({
       start: match.index ?? 0,
       end: (match.index ?? 0) + match[0].length,
@@ -258,7 +227,7 @@ function renderTextWithLinks(text, ctx) {
     const display = match[1] ?? "";
     const href = match[2] ?? "";
     const isExternal = href.startsWith("http://") || href.startsWith("https://");
-    const resolvedHref = isExternal ? href : resolveRelative(ctx.slug, href);
+    const resolvedHref = isExternal ? href : String(transformLink(ctx.slug, href, transformOpts));
     segments.push({
       start,
       end,
@@ -334,7 +303,14 @@ function renderCellValue(value, ctx) {
   }
   if (typeof value === "object") {
     if (isFileValue(value)) {
-      const href = resolveRelative(ctx.slug, slugifyPath(value.path.replace(/\.md$/, "")));
+      const href = transformLink(
+        ctx.slug,
+        slugifyPath(value.path.replace(/\.md$/, "")),
+        {
+          strategy: ctx.linkResolution,
+          allSlugs: ctx.allSlugs
+        }
+      );
       return /* @__PURE__ */ jsx("a", { href, class: "internal", children: value.basename });
     }
     return /* @__PURE__ */ jsx("code", { children: JSON.stringify(value) });
@@ -408,12 +384,22 @@ function formatMessage(template, values) {
     template
   );
 }
-var BoardView = ({ entries, view, basesData, total, locale, slug }) => {
+var BoardView = ({
+  entries,
+  view,
+  basesData,
+  total,
+  locale,
+  slug,
+  allSlugs,
+  linkResolution
+}) => {
   const localeStrings = i18n(locale).components.bases;
   const groupProperty = view.groupBy?.property ?? view.boardProperty;
   const columns = getColumns(view, basesData, entries).filter((column) => column !== groupProperty);
   const groups = /* @__PURE__ */ new Map();
   const emptyLabel = groupProperty ? localeStrings.uncategorized : localeStrings.allEntries;
+  const transformOpts = { strategy: linkResolution, allSlugs };
   for (const entry of entries) {
     const rawValue = groupProperty ? resolveEntryPropertyValue(groupProperty, entry) : void 0;
     const label = isEmptyValue(rawValue) ? emptyLabel : formatValue(rawValue);
@@ -439,12 +425,12 @@ var BoardView = ({ entries, view, basesData, total, locale, slug }) => {
         /* @__PURE__ */ jsx("span", { class: "bases-board-count", children: group.entries.length })
       ] }),
       /* @__PURE__ */ jsx("div", { class: "bases-board-column-body", children: group.entries.map((entry) => {
-        const ctx = { slug: entry.slug };
+        const ctx = { slug, allSlugs, linkResolution };
         return /* @__PURE__ */ jsxs("div", { class: "bases-board-card", children: [
           /* @__PURE__ */ jsx(
             "a",
             {
-              href: resolveRelative(slug, entry.slug),
+              href: transformLink(slug, entry.slug, transformOpts),
               class: "internal",
               "data-slug": entry.slug,
               children: entry.title
@@ -511,18 +497,19 @@ var CardsView = ({
   const imageFit = view.imageFit === "contain" ? "contain" : "cover";
   const gridStyle = typeof cardSize === "number" && cardSize > 0 ? { gridTemplateColumns: `repeat(auto-fit, minmax(${cardSize}px, 1fr))` } : void 0;
   const imageOpts = { slug, allSlugs, linkResolution };
+  const transformOpts = { strategy: linkResolution, allSlugs };
   return /* @__PURE__ */ jsxs("div", { class: "bases-cards-wrapper", children: [
     /* @__PURE__ */ jsx("div", { class: "bases-view-meta", children: formatMessage2(localeStrings.showingCount, {
       count: entries.length,
       total
     }) }),
     /* @__PURE__ */ jsx("div", { class: "bases-cards", style: gridStyle, children: entries.map((entry) => {
-      const ctx = { slug: entry.slug };
+      const ctx = { slug, allSlugs, linkResolution };
       const imageValue = imageProperty ? resolveEntryPropertyValue(imageProperty, entry) : void 0;
       const rawImage = imageValue ? String(imageValue) : "";
       const { src: imageSrc, isColor } = resolveImageSrc(rawImage, imageOpts);
       const imageAspect = typeof aspectRatio === "number" && aspectRatio > 0 ? { aspectRatio: String(aspectRatio) } : void 0;
-      const href = resolveRelative(slug, entry.slug);
+      const href = transformLink(slug, entry.slug, transformOpts);
       return /* @__PURE__ */ jsxs("a", { href, class: "internal bases-card", "data-slug": entry.slug, children: [
         imageSrc && !isColor && /* @__PURE__ */ jsx("div", { class: "bases-card-image", style: imageAspect, children: /* @__PURE__ */ jsx(
           "img",
@@ -581,6 +568,7 @@ var GalleryView = ({
   const columns = typeof view.cardSize === "number" && view.cardSize > 0 ? Math.round(view.cardSize) : 3;
   const gridStyle = { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` };
   const imageOpts = { slug, allSlugs, linkResolution };
+  const transformOpts = { strategy: linkResolution, allSlugs };
   return /* @__PURE__ */ jsxs("div", { class: "bases-gallery-wrapper", children: [
     /* @__PURE__ */ jsx("div", { class: "bases-view-meta", children: formatMessage3(localeStrings.showingCount, {
       count: entries.length,
@@ -599,7 +587,15 @@ var GalleryView = ({
             "aria-label": localeStrings.noImage
           }
         ) }),
-        /* @__PURE__ */ jsx("div", { class: "bases-gallery-title", children: /* @__PURE__ */ jsx("a", { href: resolveRelative(slug, entry.slug), class: "internal", "data-slug": entry.slug, children: entry.title }) })
+        /* @__PURE__ */ jsx("div", { class: "bases-gallery-title", children: /* @__PURE__ */ jsx(
+          "a",
+          {
+            href: transformLink(slug, entry.slug, transformOpts),
+            class: "internal",
+            "data-slug": entry.slug,
+            children: entry.title
+          }
+        ) })
       ] });
     }) })
   ] });
@@ -616,19 +612,37 @@ function formatMessage4(template, values) {
     template
   );
 }
-var ListView = ({ entries, view, basesData, total, locale, slug }) => {
+var ListView = ({
+  entries,
+  view,
+  basesData,
+  total,
+  locale,
+  slug,
+  allSlugs,
+  linkResolution
+}) => {
   const columns = getColumns(view, basesData, entries);
   const localeStrings = i18n(locale).components.bases;
+  const transformOpts = { strategy: linkResolution, allSlugs };
   return /* @__PURE__ */ jsxs("div", { class: "bases-list-wrapper", children: [
     /* @__PURE__ */ jsx("div", { class: "bases-view-meta", children: formatMessage4(localeStrings.showingCount, {
       count: entries.length,
       total
     }) }),
     /* @__PURE__ */ jsx("div", { class: "bases-list-group", children: /* @__PURE__ */ jsx("div", { class: "bases-list-group-list", children: entries.map((entry) => {
-      const ctx = { slug: entry.slug };
+      const ctx = { slug, allSlugs, linkResolution };
       const primaryColumn = columns[0] ?? "file.name";
       const secondaryColumns = columns.slice(1);
-      const primaryValue = primaryColumn === "file.name" ? /* @__PURE__ */ jsx("a", { href: resolveRelative(slug, entry.slug), class: "internal", "data-slug": entry.slug, children: entry.title }) : renderCellValue(resolveEntryPropertyValue(primaryColumn, entry), ctx);
+      const primaryValue = primaryColumn === "file.name" ? /* @__PURE__ */ jsx(
+        "a",
+        {
+          href: transformLink(slug, entry.slug, transformOpts),
+          class: "internal",
+          "data-slug": entry.slug,
+          children: entry.title
+        }
+      ) : renderCellValue(resolveEntryPropertyValue(primaryColumn, entry), ctx);
       const secondaryItems = [];
       for (const column of secondaryColumns) {
         const value = resolveEntryPropertyValue(column, entry);
@@ -710,18 +724,36 @@ function groupEntries(entries, groupProperty, emptyLabel) {
   }
   return groups.size > 0 ? groups : null;
 }
-function renderRow(entry, columns, view, slug) {
-  const ctx = { slug: entry.slug };
+function renderRow(entry, columns, view, slug, allSlugs, linkResolution) {
+  const transformOpts = { strategy: linkResolution, allSlugs };
+  const ctx = { slug, allSlugs, linkResolution };
   return /* @__PURE__ */ jsx("tr", { children: columns.map((column) => {
     const value = resolveEntryPropertyValue(column, entry);
     const display = formatValue(value);
     const isPrimary = column === "file.name" || column === "title";
     const columnWidth = view.columnSize?.[column];
     const style = columnWidth ? { width: `${columnWidth}px`, minWidth: `${columnWidth}px` } : void 0;
-    return /* @__PURE__ */ jsx("td", { "data-value": display, style, children: isPrimary ? /* @__PURE__ */ jsx("a", { href: resolveRelative(slug, entry.slug), class: "internal", "data-slug": entry.slug, children: display || entry.title }) : renderCellValue(value, ctx) });
+    return /* @__PURE__ */ jsx("td", { "data-value": display, style, children: isPrimary ? /* @__PURE__ */ jsx(
+      "a",
+      {
+        href: transformLink(slug, entry.slug, transformOpts),
+        class: "internal",
+        "data-slug": entry.slug,
+        children: display || entry.title
+      }
+    ) : renderCellValue(value, ctx) });
   }) });
 }
-var TableView = ({ entries, view, basesData, total, locale, slug }) => {
+var TableView = ({
+  entries,
+  view,
+  basesData,
+  total,
+  locale,
+  slug,
+  allSlugs,
+  linkResolution
+}) => {
   const columns = getColumns(view, basesData, entries);
   const summaries = view.summaries ?? {};
   const hasSummary = Object.keys(summaries).length > 0;
@@ -752,8 +784,12 @@ var TableView = ({ entries, view, basesData, total, locale, slug }) => {
           /* @__PURE__ */ jsx("span", { class: "bases-table-group-label", children: label }),
           /* @__PURE__ */ jsx("span", { class: "bases-table-group-count", children: groupEntries2.length })
         ] }) }),
-        groupEntries2.map((entry) => renderRow(entry, columns, view, slug))
-      ] })) : entries.map((entry) => renderRow(entry, columns, view, slug)) }),
+        groupEntries2.map(
+          (entry) => renderRow(entry, columns, view, slug, allSlugs, linkResolution)
+        )
+      ] })) : entries.map(
+        (entry) => renderRow(entry, columns, view, slug, allSlugs, linkResolution)
+      ) }),
       hasSummary && /* @__PURE__ */ jsx("tfoot", { children: /* @__PURE__ */ jsx("tr", { class: "bases-summary-row", children: columns.map((column) => {
         const summary = summaries[column];
         if (!summary) return /* @__PURE__ */ jsx("td", {});
@@ -869,5 +905,5 @@ var BasesBody_default = ((opts) => {
 });
 
 export { BasesBody_default, ViewSelector, i18n, registerBuiltinViews, resolveBasesEntries };
-//# sourceMappingURL=chunk-72VSOITW.js.map
-//# sourceMappingURL=chunk-72VSOITW.js.map
+//# sourceMappingURL=chunk-IYVW6USQ.js.map
+//# sourceMappingURL=chunk-IYVW6USQ.js.map

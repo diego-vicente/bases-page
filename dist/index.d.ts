@@ -5,7 +5,7 @@ export { BasesEntry, BasesView, FilterNode, GroupBy, PropertyConfig, SortDirecti
 export { _ as BasesBody } from './BasesBody-B4CEJjEp.js';
 export { registerCustomViews, viewRegistry } from './registry.js';
 export { compile, evaluate, evaluateFilter, resolvePropertyValue } from './compiler/index.js';
-export { FullSlug, RelativeURL, TransformOptions, transformLink } from '@quartz-community/utils';
+export { FullSlug, RelativeURL, TransformOptions, slugifyPath, transformLink } from '@quartz-community/utils';
 import 'preact';
 
 declare const BasesPage: QuartzPageTypePlugin<BasesPageOptions>;

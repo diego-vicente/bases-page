@@ -84,7 +84,7 @@ const CardsView: ViewRenderer = ({
       </div>
       <div class="bases-cards" style={gridStyle}>
         {entries.map((entry) => {
-          const ctx = { slug: entry.slug, allSlugs, linkResolution };
+          const ctx = { slug, allSlugs, linkResolution };
           const imageValue = imageProperty
             ? resolveEntryPropertyValue(imageProperty, entry)
             : undefined;

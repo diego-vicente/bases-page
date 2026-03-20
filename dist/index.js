@@ -1,6 +1,6 @@
 import { createRequire } from 'module';
-import { BasesBody_default, resolveBasesEntries, registerBuiltinViews, i18n, ViewSelector } from './chunk-72VSOITW.js';
-export { BasesBody_default as BasesBody } from './chunk-72VSOITW.js';
+import { BasesBody_default, resolveBasesEntries, registerBuiltinViews, i18n, ViewSelector } from './chunk-IYVW6USQ.js';
+export { BasesBody_default as BasesBody } from './chunk-IYVW6USQ.js';
 import { registerCustomViews, viewRegistry } from './chunk-2AUMER56.js';
 export { registerCustomViews, viewRegistry } from './chunk-2AUMER56.js';
 export { compile, evaluate, evaluateFilter, resolvePropertyValue } from './chunk-AA6BIPOH.js';
@@ -10,7 +10,7 @@ import { VFile } from 'vfile';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { slugifyFilePath } from '@quartz-community/utils';
-export { transformLink } from '@quartz-community/utils';
+export { slugifyPath, transformLink } from '@quartz-community/utils';
 
 createRequire(import.meta.url);
 
