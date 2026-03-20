@@ -7,7 +7,7 @@ import {
   getColumns,
   renderCellValue,
 } from "../src/components/shared/cell";
-import { slugifyPath } from "../src/util/path";
+import { slugifyPath } from "@quartz-community/utils";
 import type { BasesData, BasesEntry, BasesView } from "../src/types";
 
 const sampleEntry: BasesEntry = {
@@ -130,7 +130,11 @@ describe("getColumns", () => {
 });
 
 describe("renderCellValue", () => {
-  const ctx = { slug: "notes/alpha" };
+  const ctx = {
+    slug: "notes/alpha",
+    allSlugs: [] as string[],
+    linkResolution: "shortest" as const,
+  };
 
   it("renders null as empty marker", () => {
     const result = renderCellValue(null, ctx) as { type: string; props: Record<string, unknown> };
@@ -229,7 +233,11 @@ describe("renderCellValue", () => {
       tags: [],
       links: [],
     };
-    const result = renderCellValue(fileObj, { slug: "Compendium/Species" }) as {
+    const result = renderCellValue(fileObj, {
+      slug: "Compendium/Species",
+      allSlugs: [],
+      linkResolution: "shortest",
+    }) as {
       type: string;
       props: Record<string, unknown>;
     };
@@ -249,7 +257,11 @@ describe("renderCellValue", () => {
       tags: [],
       links: [],
     };
-    const result = renderCellValue(fileObj, { slug: "Compendium/Species" }) as {
+    const result = renderCellValue(fileObj, {
+      slug: "Compendium/Species",
+      allSlugs: [],
+      linkResolution: "shortest",
+    }) as {
       type: string;
       props: Record<string, unknown>;
     };
@@ -269,7 +281,11 @@ describe("renderCellValue", () => {
       tags: [],
       links: [],
     };
-    const result = renderCellValue(fileObj, { slug: "Notes/index" }) as {
+    const result = renderCellValue(fileObj, {
+      slug: "Notes/index",
+      allSlugs: [],
+      linkResolution: "shortest",
+    }) as {
       type: string;
       props: Record<string, unknown>;
     };

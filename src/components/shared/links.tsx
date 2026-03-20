@@ -1,19 +1,28 @@
 import type { ComponentChild } from "preact";
+import type { FullSlug } from "@quartz-community/types";
 
-import { resolveRelative } from "../../util/path";
+import { transformLink } from "@quartz-community/utils";
 
 const WIKILINK_RE = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
 const MDLINK_RE = /\[([^\]]*)\]\(([^)]+)\)/g;
 const URL_RE = /https?:\/\/[^\s<>]+/g;
 
-type RenderCtx = { slug: string };
+type RenderCtx = {
+  slug: string;
+  allSlugs: string[];
+  linkResolution: "absolute" | "relative" | "shortest";
+};
 
 export function renderTextWithLinks(text: string, ctx: RenderCtx): ComponentChild[] {
   const segments: { start: number; end: number; node: ComponentChild }[] = [];
+  const transformOpts = {
+    strategy: ctx.linkResolution,
+    allSlugs: ctx.allSlugs as FullSlug[],
+  };
   for (const match of text.matchAll(WIKILINK_RE)) {
     const target = match[1] ?? "";
     const display = match[2] ?? target;
-    const href = resolveRelative(ctx.slug, target);
+    const href = transformLink(ctx.slug as FullSlug, target, transformOpts);
     segments.push({
       start: match.index ?? 0,
       end: (match.index ?? 0) + match[0].length,
@@ -33,7 +42,9 @@ export function renderTextWithLinks(text: string, ctx: RenderCtx): ComponentChil
     const display = match[1] ?? "";
     const href = match[2] ?? "";
     const isExternal = href.startsWith("http://") || href.startsWith("https://");
-    const resolvedHref = isExternal ? href : resolveRelative(ctx.slug, href);
+    const resolvedHref = isExternal
+      ? href
+      : String(transformLink(ctx.slug as FullSlug, href, transformOpts));
     segments.push({
       start,
       end,

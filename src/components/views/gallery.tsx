@@ -1,7 +1,8 @@
 import type { ViewRenderer, ViewTypeRegistration } from "../../types";
+import type { FullSlug } from "@quartz-community/types";
 import { i18n } from "../../i18n";
 import { resolveEntryPropertyValue } from "../shared/cell";
-import { resolveRelative } from "../../util/path";
+import { transformLink } from "@quartz-community/utils";
 import { resolveImageSrc } from "./cards";
 import type { ResolveImageOpts } from "./cards";
 
@@ -27,6 +28,7 @@ const GalleryView: ViewRenderer = ({
     typeof view.cardSize === "number" && view.cardSize > 0 ? Math.round(view.cardSize) : 3;
   const gridStyle = { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` };
   const imageOpts: ResolveImageOpts = { slug, allSlugs, linkResolution };
+  const transformOpts = { strategy: linkResolution, allSlugs: allSlugs as FullSlug[] };
 
   return (
     <div class="bases-gallery-wrapper">
@@ -59,7 +61,11 @@ const GalleryView: ViewRenderer = ({
                 )}
               </div>
               <div class="bases-gallery-title">
-                <a href={resolveRelative(slug, entry.slug)} class="internal" data-slug={entry.slug}>
+                <a
+                  href={transformLink(slug as FullSlug, entry.slug, transformOpts)}
+                  class="internal"
+                  data-slug={entry.slug}
+                >
                   {entry.title}
                 </a>
               </div>

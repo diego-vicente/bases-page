@@ -1,10 +1,15 @@
 import type { ComponentChild } from "preact";
+import type { FullSlug } from "@quartz-community/types";
 
 import type { BasesData, BasesEntry, BasesView } from "../../types";
 import { renderTextWithLinks } from "./links";
-import { resolveRelative, slugifyPath } from "../../util/path";
+import { transformLink, slugifyPath } from "@quartz-community/utils";
 
-type RenderCtx = { slug: string };
+type RenderCtx = {
+  slug: string;
+  allSlugs: string[];
+  linkResolution: "absolute" | "relative" | "shortest";
+};
 
 /**
  * Detect file objects returned by asFile() in the expression engine.
@@ -61,7 +66,14 @@ export function renderCellValue(value: unknown, ctx: RenderCtx): ComponentChild 
 
   if (typeof value === "object") {
     if (isFileValue(value)) {
-      const href = resolveRelative(ctx.slug, slugifyPath(value.path.replace(/\.md$/, "")));
+      const href = transformLink(
+        ctx.slug as FullSlug,
+        slugifyPath(value.path.replace(/\.md$/, "")),
+        {
+          strategy: ctx.linkResolution,
+          allSlugs: ctx.allSlugs as FullSlug[],
+        },
+      );
       return (
         <a href={href} class="internal">
           {value.basename}

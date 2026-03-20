@@ -39,5 +39,5 @@ export type {
 } from "@quartz-community/types";
 
 // Path utilities — re-exported for community plugins that need link resolution
-export { transformLink } from "@quartz-community/utils";
+export { transformLink, slugifyPath } from "@quartz-community/utils";
 export type { TransformOptions, FullSlug, RelativeURL } from "@quartz-community/utils";

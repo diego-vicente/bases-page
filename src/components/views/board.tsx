@@ -1,4 +1,5 @@
 import type { ViewRenderer, ViewTypeRegistration } from "../../types";
+import type { FullSlug } from "@quartz-community/types";
 import { i18n } from "../../i18n";
 import {
   formatValue,
@@ -8,7 +9,7 @@ import {
   renderCellValue,
   resolveEntryPropertyValue,
 } from "../shared/cell";
-import { resolveRelative } from "../../util/path";
+import { transformLink } from "@quartz-community/utils";
 
 function formatMessage(template: string, values: Record<string, string | number>): string {
   return Object.entries(values).reduce(
@@ -17,12 +18,22 @@ function formatMessage(template: string, values: Record<string, string | number>
   );
 }
 
-const BoardView: ViewRenderer = ({ entries, view, basesData, total, locale, slug }) => {
+const BoardView: ViewRenderer = ({
+  entries,
+  view,
+  basesData,
+  total,
+  locale,
+  slug,
+  allSlugs,
+  linkResolution,
+}) => {
   const localeStrings = i18n(locale).components.bases;
   const groupProperty = view.groupBy?.property ?? view.boardProperty;
   const columns = getColumns(view, basesData, entries).filter((column) => column !== groupProperty);
   const groups = new Map<string, { label: string; entries: typeof entries }>();
   const emptyLabel = groupProperty ? localeStrings.uncategorized : localeStrings.allEntries;
+  const transformOpts = { strategy: linkResolution, allSlugs: allSlugs as FullSlug[] };
 
   for (const entry of entries) {
     const rawValue = groupProperty ? resolveEntryPropertyValue(groupProperty, entry) : undefined;
@@ -57,11 +68,11 @@ const BoardView: ViewRenderer = ({ entries, view, basesData, total, locale, slug
             </div>
             <div class="bases-board-column-body">
               {group.entries.map((entry) => {
-                const ctx = { slug: entry.slug };
+                const ctx = { slug: entry.slug, allSlugs, linkResolution };
                 return (
                   <div class="bases-board-card">
                     <a
-                      href={resolveRelative(slug, entry.slug)}
+                      href={transformLink(slug as FullSlug, entry.slug, transformOpts)}
                       class="internal"
                       data-slug={entry.slug}
                     >

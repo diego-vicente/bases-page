@@ -7,7 +7,6 @@ import {
   renderCellValue,
   resolveEntryPropertyValue,
 } from "../shared/cell";
-import { resolveRelative } from "../../util/path";
 import { transformLink } from "@quartz-community/utils";
 
 function formatMessage(template: string, values: Record<string, string | number>): string {
@@ -73,6 +72,7 @@ const CardsView: ViewRenderer = ({
       ? { gridTemplateColumns: `repeat(auto-fit, minmax(${cardSize}px, 1fr))` }
       : undefined;
   const imageOpts: ResolveImageOpts = { slug, allSlugs, linkResolution };
+  const transformOpts = { strategy: linkResolution, allSlugs: allSlugs as FullSlug[] };
 
   return (
     <div class="bases-cards-wrapper">
@@ -84,7 +84,7 @@ const CardsView: ViewRenderer = ({
       </div>
       <div class="bases-cards" style={gridStyle}>
         {entries.map((entry) => {
-          const ctx = { slug: entry.slug };
+          const ctx = { slug: entry.slug, allSlugs, linkResolution };
           const imageValue = imageProperty
             ? resolveEntryPropertyValue(imageProperty, entry)
             : undefined;
@@ -94,7 +94,7 @@ const CardsView: ViewRenderer = ({
             typeof aspectRatio === "number" && aspectRatio > 0
               ? { aspectRatio: String(aspectRatio) }
               : undefined;
-          const href = resolveRelative(slug, entry.slug);
+          const href = transformLink(slug as FullSlug, entry.slug, transformOpts);
           return (
             <a href={href} class="internal bases-card" data-slug={entry.slug}>
               {imageSrc && !isColor && (

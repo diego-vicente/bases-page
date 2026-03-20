@@ -1,4 +1,5 @@
 import type { BasesEntry, ViewRenderer, ViewTypeRegistration } from "../../types";
+import type { FullSlug } from "@quartz-community/types";
 import { i18n } from "../../i18n";
 import {
   formatValue,
@@ -9,7 +10,7 @@ import {
   resolveEntryPropertyValue,
 } from "../shared/cell";
 import { computeSummary } from "../shared/summary";
-import { resolveRelative } from "../../util/path";
+import { transformLink } from "@quartz-community/utils";
 
 function formatMessage(template: string, values: Record<string, string | number>): string {
   return Object.entries(values).reduce(
@@ -44,8 +45,11 @@ function renderRow(
   columns: string[],
   view: Parameters<ViewRenderer>[0]["view"],
   slug: string,
+  allSlugs: string[],
+  linkResolution: "absolute" | "relative" | "shortest",
 ) {
-  const ctx = { slug: entry.slug };
+  const transformOpts = { strategy: linkResolution, allSlugs: allSlugs as FullSlug[] };
+  const ctx = { slug: entry.slug, allSlugs, linkResolution };
   return (
     <tr>
       {columns.map((column) => {
@@ -59,7 +63,11 @@ function renderRow(
         return (
           <td data-value={display} style={style}>
             {isPrimary ? (
-              <a href={resolveRelative(slug, entry.slug)} class="internal" data-slug={entry.slug}>
+              <a
+                href={transformLink(slug as FullSlug, entry.slug, transformOpts)}
+                class="internal"
+                data-slug={entry.slug}
+              >
                 {display || entry.title}
               </a>
             ) : (
@@ -72,7 +80,16 @@ function renderRow(
   );
 }
 
-const TableView: ViewRenderer = ({ entries, view, basesData, total, locale, slug }) => {
+const TableView: ViewRenderer = ({
+  entries,
+  view,
+  basesData,
+  total,
+  locale,
+  slug,
+  allSlugs,
+  linkResolution,
+}) => {
   const columns = getColumns(view, basesData, entries);
   const summaries = view.summaries ?? {};
   const hasSummary = Object.keys(summaries).length > 0;
@@ -119,10 +136,14 @@ const TableView: ViewRenderer = ({ entries, view, basesData, total, locale, slug
                       <span class="bases-table-group-count">{groupEntries.length}</span>
                     </td>
                   </tr>
-                  {groupEntries.map((entry) => renderRow(entry, columns, view, slug))}
+                  {groupEntries.map((entry) =>
+                    renderRow(entry, columns, view, slug, allSlugs, linkResolution),
+                  )}
                 </>
               ))
-            : entries.map((entry) => renderRow(entry, columns, view, slug))}
+            : entries.map((entry) =>
+                renderRow(entry, columns, view, slug, allSlugs, linkResolution),
+              )}
         </tbody>
         {hasSummary && (
           <tfoot>
