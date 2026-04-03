@@ -15,6 +15,7 @@ import { fromHtml } from "hast-util-from-html";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { slugifyFilePath } from "@quartz-community/utils";
+import type { SimpleSlug } from "@quartz-community/utils";
 import { parseBasesData } from "./parser";
 import { resolveBasesEntries } from "./resolver";
 import BasesBody from "./components/BasesBody";
@@ -80,7 +81,7 @@ export const BasesPage: QuartzPageTypePlugin<BasesPageOptions> = (opts) => ({
             allFileData,
             undefined,
             basesSelfContext,
-          ).entries.map((e) => e.slug),
+          ).entries.map((e) => e.slug as SimpleSlug),
           basesData,
           basesOptions: opts,
           basesSelfContext,

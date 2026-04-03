@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { resolveBasesEntries } from "../src/resolver";
-import type { BasesData, BasesView, QuartzPluginData } from "../src/types";
+import type { SimpleSlug } from "@quartz-community/utils";
+import type { BasesData, BasesView, FilePath, FullSlug, QuartzPluginData } from "../src/types";
 
 type FileInput = {
   slug: string;
@@ -8,18 +9,39 @@ type FileInput = {
   frontmatter?: Record<string, unknown>;
   links?: string[];
   outgoingLinks?: string[];
-  dates?: Record<string, unknown>;
+  dates?: {
+    created: string;
+    modified: string;
+    published?: string;
+  };
 };
 
+const asFullSlug = (value: string): FullSlug => value as FullSlug;
+const asFilePath = (value: string): FilePath => value as FilePath;
+const asSimpleSlugs = (value: string[] | undefined): SimpleSlug[] | undefined =>
+  value as SimpleSlug[] | undefined;
+
 function makeFile(input: FileInput): QuartzPluginData {
+  const frontmatter = {
+    title:
+      (input.frontmatter?.title as string | undefined) ?? input.slug.split("/").pop() ?? "Untitled",
+    ...(input.frontmatter ?? {}),
+  };
+  const dates = input.dates
+    ? {
+        created: new Date(input.dates.created),
+        modified: new Date(input.dates.modified),
+        published: new Date(input.dates.published ?? input.dates.modified),
+      }
+    : undefined;
   return {
-    slug: input.slug,
-    filePath: input.filePath ?? `${input.slug}.md`,
-    frontmatter: input.frontmatter ?? {},
-    links: input.links,
-    outgoingLinks: input.outgoingLinks,
-    dates: input.dates,
-  } as QuartzPluginData;
+    slug: asFullSlug(input.slug),
+    filePath: asFilePath(input.filePath ?? `${input.slug}.md`),
+    frontmatter,
+    links: asSimpleSlugs(input.links),
+    outgoingLinks: asSimpleSlugs(input.outgoingLinks),
+    dates,
+  };
 }
 
 const baseFiles: QuartzPluginData[] = [
