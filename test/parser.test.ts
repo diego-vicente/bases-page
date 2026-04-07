@@ -88,6 +88,25 @@ views:
     const data = parseBasesData("{{{{invalid");
     expect(data).toBeNull();
   });
+
+  it("normalizes sort entries", () => {
+    const yaml = `
+views:
+  - type: table
+    sort:
+      - column: priority
+      - property: status
+      - direction: DESC
+      - property: created
+        direction: DESC
+`;
+    const data = parseBasesData(yaml);
+    expect(data?.views?.[0]?.sort).toEqual([
+      { property: "priority", direction: "ASC" },
+      { property: "status", direction: "ASC" },
+      { property: "created", direction: "DESC" },
+    ]);
+  });
 });
 
 describe("expression parser", () => {

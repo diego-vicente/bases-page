@@ -1,5 +1,5 @@
 import { parse } from "yaml";
-import type { BasesData, BasesView } from "./types";
+import type { BasesData, BasesView, SortEntry } from "./types";
 
 function extractBaseBlock(raw: string): string | null {
   const lines = raw.split("\n");
@@ -28,6 +28,26 @@ function extractBaseBlock(raw: string): string | null {
   return lines.slice(start, end).join("\n");
 }
 
+function normalizeSortEntries(sort: unknown): SortEntry[] | undefined {
+  if (!Array.isArray(sort)) return undefined;
+  const result: SortEntry[] = [];
+  for (const entry of sort) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
+    const rec = entry as Record<string, unknown>;
+    // Obsidian uses "column" but our SortEntry expects "property"
+    const property =
+      typeof rec.property === "string"
+        ? rec.property
+        : typeof rec.column === "string"
+          ? rec.column
+          : undefined;
+    if (!property) continue;
+    const direction = rec.direction === "DESC" ? ("DESC" as const) : ("ASC" as const);
+    result.push({ property, direction });
+  }
+  return result;
+}
+
 function normalizeViews(views: unknown): BasesView[] | null | undefined {
   if (views === undefined) return undefined;
   if (!Array.isArray(views)) return null;
@@ -37,6 +57,10 @@ function normalizeViews(views: unknown): BasesView[] | null | undefined {
       if (!view || typeof view !== "object" || Array.isArray(view)) return null;
       const record = view as Record<string, unknown>;
       if (typeof record.type !== "string") return null;
+      const sort = normalizeSortEntries(record.sort);
+      if (sort !== undefined) {
+        record.sort = sort;
+      }
       return record as BasesView;
     })
     .filter((view): view is BasesView => view !== null);
