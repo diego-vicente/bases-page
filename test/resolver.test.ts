@@ -164,7 +164,7 @@ describe("resolveBasesEntries", () => {
     const result = resolveBasesEntries(basesData, baseFiles);
     const alpha = result.entries.find((entry) => entry.slug === "notes/alpha");
     expect(alpha?.fileProperties).toEqual({
-      name: "alpha.md",
+      name: "alpha",
       basename: "alpha",
       path: "notes/alpha.md",
       folder: "notes",
@@ -177,6 +177,22 @@ describe("resolveBasesEntries", () => {
       ctime: new Date("2024-01-01T00:00:00Z"),
       mtime: new Date("2024-01-02T00:00:00Z"),
     });
+  });
+
+  it("strips .md extension from file.name", () => {
+    const basesData: BasesData = {};
+    const result = resolveBasesEntries(basesData, baseFiles);
+    const alpha = result.entries.find((entry) => entry.slug === "notes/alpha");
+    expect(alpha?.fileProperties.name).toBe("alpha");
+  });
+
+  it("keeps file.name as-is for files without extension", () => {
+    const basesData: BasesData = {};
+    const files: QuartzPluginData[] = [
+      makeFile({ slug: "notes/README", filePath: "notes/README" }),
+    ];
+    const result = resolveBasesEntries(basesData, files);
+    expect(result.entries[0]?.fileProperties.name).toBe("README");
   });
 
   it("falls back to file name when title is missing", () => {
@@ -296,7 +312,7 @@ describe("resolveBasesEntries", () => {
     expect(halfelf?.slug).toBe("Compendium/Species/halfelf");
     const inheritances = halfelf?.formulaValues.Inheritances as Record<string, unknown>[];
     expect(inheritances).toHaveLength(1);
-    expect(inheritances[0]?.name).toBe("elf.md");
+    expect(inheritances[0]?.name).toBe("elf");
     expect(inheritances[0]?.tags).toEqual(["lineage"]);
   });
 
@@ -324,7 +340,7 @@ describe("resolveBasesEntries", () => {
     expect(result.entries).toHaveLength(1);
     const refs = result.entries[0]?.formulaValues.refs as Record<string, unknown>[];
     expect(refs).toHaveLength(1);
-    expect(refs[0]?.name).toBe("guide.md");
+    expect(refs[0]?.name).toBe("guide");
   });
 
   it("resolves short basename embeds from OFM wikilinks", () => {
