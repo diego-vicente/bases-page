@@ -170,6 +170,7 @@ function getNestedValue(target: unknown, path: string[]): unknown {
 }
 
 export function resolvePropertyValue(path: string, context: EvalContext): unknown {
+  if (typeof path !== "string") return undefined;
   const trimmed = path.trim();
   if (!trimmed) return undefined;
   if (trimmed.startsWith("this.")) {

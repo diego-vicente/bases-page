@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { compile } from "../src/compiler";
+import { compile, resolvePropertyValue } from "../src/compiler";
 
 describe("compiler", () => {
   it("compiles simple expressions into expected instruction types", () => {
@@ -67,5 +67,23 @@ describe("compiler", () => {
     const last = instructions[instructions.length - 1];
     expect(last).toHaveProperty("type", "CallMethod");
     expect(last).not.toHaveProperty("argPrograms");
+  });
+
+  it("returns undefined for non-string property paths", () => {
+    const ctx = {
+      note: {},
+      file: {
+        name: "",
+        basename: "",
+        path: "",
+        folder: "",
+        ext: "",
+        tags: [],
+        links: [],
+      },
+      formula: {},
+    };
+    expect(resolvePropertyValue(42 as unknown as string, ctx)).toBeUndefined();
+    expect(resolvePropertyValue({} as unknown as string, ctx)).toBeUndefined();
   });
 });
