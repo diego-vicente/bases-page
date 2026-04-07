@@ -19,8 +19,8 @@ import type { SimpleSlug } from "@quartz-community/utils";
 import { parseBasesData } from "./parser";
 import { resolveBasesEntries } from "./resolver";
 import BasesBody from "./components/BasesBody";
-import type { BasesPageOptions } from "./types";
-import type { BasesData } from "./types";
+import type { BasesPageOptions, BasesData } from "./types";
+import type { EvalContext } from "./compiler";
 import { registerBuiltinViews } from "./components/views";
 import { registerCustomViews, viewRegistry } from "./registry";
 import { i18n } from "./i18n";
@@ -52,9 +52,7 @@ export const BasesPage: QuartzPageTypePlugin<BasesPageOptions> = (opts) => ({
       const basesData = parseBasesData(raw);
       if (!basesData) continue;
 
-      const slug = slugifyFilePath(
-        filePath.replace(/\.base$/, "") as unknown as FilePath,
-      ) as unknown as FullSlug;
+      const slug = slugifyFilePath(filePath as unknown as FilePath) as unknown as FullSlug;
       const fileWithoutExt = filePath.replace(/\.base$/, "");
       const baseName = fileWithoutExt.split("/").pop() ?? "Base";
 
@@ -137,7 +135,29 @@ function createBasesCodeblockTransform(opts: BasesPageOptions | undefined): Tree
       const basesData = basesBlocks[blockIndex];
       if (!basesData) return;
 
-      // Render the bases views inline — mirrors BasesBody.tsx logic
+      const viewName = node.properties?.["dataQzBasesView"] as string | undefined;
+
+      const fd = componentData.fileData as Record<string, unknown>;
+      const selfPath = (fd.relativePath ?? fd.filePath ?? slug) as string;
+      const selfName =
+        selfPath
+          .split("/")
+          .pop()
+          ?.replace(/\.[^.]+$/, "") ?? "";
+      const selfLastSlash = selfPath.lastIndexOf("/");
+      const selfContext = {
+        file: {
+          name: selfName,
+          path: selfPath,
+          folder: selfLastSlash >= 0 ? selfPath.slice(0, selfLastSlash) : "",
+          ext: selfPath.slice(selfPath.lastIndexOf(".") + 1),
+        },
+      };
+
+      const baseSlugs = new Set(allSlugs.filter((s) => s.endsWith(".base")));
+      const baseAliases = new Set([...baseSlugs].map((s) => s.replace(/\.base$/, "")));
+      const contentSlugs = allSlugs.filter((s) => !baseSlugs.has(s) && !baseAliases.has(s));
+
       const htmlString = renderBasesInline(
         basesData,
         allFiles,
@@ -145,8 +165,10 @@ function createBasesCodeblockTransform(opts: BasesPageOptions | undefined): Tree
         localeStrings,
         opts,
         slug,
-        allSlugs,
+        contentSlugs,
         linkResolution,
+        viewName,
+        selfContext,
       );
       const fragment = fromHtml(htmlString, { fragment: true }) as HtmlRoot;
 
@@ -171,8 +193,17 @@ function renderBasesInline(
   slug: string,
   allSlugs: string[],
   linkResolution: "absolute" | "relative" | "shortest",
+  viewName?: string,
+  selfContext?: EvalContext["self"],
 ): string {
-  const views = basesData.views ?? [];
+  let views = basesData.views ?? [];
+
+  if (viewName) {
+    views = views.filter((v) => v.name === viewName);
+    if (views.length === 0) {
+      return `<div class="bases-empty">View &quot;${viewName}&quot; not found</div>`;
+    }
+  }
 
   if (views.length === 0) {
     return `<div class="bases-empty">${localeStrings.noViews}</div>`;
@@ -199,7 +230,7 @@ function renderBasesInline(
 
   // Render each view panel
   const viewPanels = views.map((view, index) => {
-    const { entries, total } = resolveBasesEntries(basesData, allFiles, view);
+    const { entries, total } = resolveBasesEntries(basesData, allFiles, view, selfContext);
     const registration = viewRegistry.get(view.type);
     const Renderer = registration?.render;
     const activeClass = index === initialIndex ? " is-active" : "";

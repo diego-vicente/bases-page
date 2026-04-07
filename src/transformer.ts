@@ -1,7 +1,11 @@
 import type { Root as HTMLRoot, Element, ElementContent } from "hast";
-import type { QuartzTransformerPlugin } from "@quartz-community/types";
+import type { QuartzTransformerPlugin, BuildCtx } from "@quartz-community/types";
+import type { FilePath } from "@quartz-community/utils";
+import { slugifyFilePath } from "@quartz-community/utils";
 import type { VFile } from "vfile";
 import { visit } from "unist-util-visit";
+import { readFileSync } from "fs";
+import { join } from "path";
 import { parseBasesData } from "./parser";
 import type { BasesData, BasesPageOptions } from "./types";
 
@@ -20,22 +24,63 @@ import type { BasesData, BasesPageOptions } from "./types";
 export const BasesTransformer: QuartzTransformerPlugin<Partial<BasesPageOptions>> = (_opts) => {
   return {
     name: "BasesTransformer",
-    htmlPlugins() {
+    htmlPlugins(ctx: BuildCtx) {
+      const baseFileBySlug = buildBaseFileLookup(ctx);
+
       return [
-        // Plugin 1: Extract embed targets from transclusion blockquotes.
-        // OFM converts ![[...]] embeds to <blockquote class="transclude" data-url="...">.
-        // We collect those URLs and store them on file.data.embeds so the resolver
-        // can populate file.embeds in the EvalContext.
         () => {
           return (tree: HTMLRoot, file: VFile) => {
             const embeds: string[] = [];
-            visit(tree, "element", (node: Element) => {
+
+            visit(tree, "element", (node: Element, index, parent) => {
+              if (!parent || index === undefined) return;
               if (node.tagName !== "blockquote") return;
               const classes = (node.properties?.className ?? []) as string[];
               if (!classes.includes("transclude")) return;
+
               const url = node.properties?.dataUrl as string | undefined;
-              if (url) embeds.push(url);
+              if (!url) return;
+
+              const baseFile = baseFileBySlug.get(url);
+              if (!baseFile) {
+                embeds.push(url);
+                return;
+              }
+
+              const block = (node.properties?.dataBlock as string) ?? "";
+              const viewName = block.startsWith("#") ? block.slice(1) : "";
+
+              const fullPath = join(ctx.argv.directory, baseFile);
+              let raw: string;
+              try {
+                raw = readFileSync(fullPath, "utf-8");
+              } catch {
+                embeds.push(url);
+                return;
+              }
+
+              const basesData = parseBasesData(raw);
+              if (!basesData) {
+                embeds.push(url);
+                return;
+              }
+
+              if (!file.data.basesBlocks) file.data.basesBlocks = [];
+              const blockIndex = file.data.basesBlocks.length;
+              file.data.basesBlocks.push(basesData);
+
+              const placeholder: Element = {
+                type: "element",
+                tagName: "div",
+                properties: {
+                  dataQzBasesCodeblock: String(blockIndex),
+                  ...(viewName ? { dataQzBasesView: viewName } : {}),
+                },
+                children: [],
+              };
+              parent.children[index] = placeholder;
             });
+
             if (embeds.length > 0) {
               file.data.embeds = embeds;
             }
@@ -196,6 +241,29 @@ function extractText(node: Element): string {
     }
   }
   return parts.join("");
+}
+
+function buildBaseFileLookup(ctx: BuildCtx): Map<string, string> {
+  const lookup = new Map<string, string>();
+  const baseFiles = ctx.allFiles.filter((fp) => fp.endsWith(".base"));
+  for (const fp of baseFiles) {
+    const slug = slugifyFilePath(fp as unknown as FilePath);
+    lookup.set(slug, fp);
+
+    const fileName = fp.split("/").pop() ?? "";
+    const fileNameSlug = slugifyFilePath(fileName as unknown as FilePath);
+    if (!lookup.has(fileNameSlug)) {
+      lookup.set(fileNameSlug, fp);
+    }
+
+    const withoutExt = fp.replace(/\.base$/, "");
+    const nameOnly = withoutExt.split("/").pop() ?? "";
+    const nameSlug = slugifyFilePath(nameOnly as unknown as FilePath);
+    if (!lookup.has(nameSlug)) {
+      lookup.set(nameSlug, fp);
+    }
+  }
+  return lookup;
 }
 
 declare module "vfile" {

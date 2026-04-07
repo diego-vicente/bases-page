@@ -29,7 +29,10 @@ export default ((opts?: BasesPageOptions) => {
     const basesOptions = fileData.basesOptions ?? opts;
     const basesSelfContext = fileData.basesSelfContext;
     const slug = (props.fileData.slug as string) ?? "";
-    const allSlugs = ((props.ctx as Record<string, unknown>)?.allSlugs as string[]) ?? [];
+    const rawSlugs = ((props.ctx as Record<string, unknown>)?.allSlugs as string[]) ?? [];
+    const baseSlugs = new Set(rawSlugs.filter((s) => s.endsWith(".base")));
+    const baseAliases = new Set([...baseSlugs].map((s) => s.replace(/\.base$/, "")));
+    const allSlugs = rawSlugs.filter((s) => !baseSlugs.has(s) && !baseAliases.has(s));
     const linkResolution = basesOptions?.linkResolution ?? "shortest";
 
     if (!basesData) {
