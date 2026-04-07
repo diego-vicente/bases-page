@@ -85,6 +85,29 @@ function isFileValue(value: unknown): value is EvalContext["file"] {
   );
 }
 
+function resolveSelfName(value: unknown): string | null {
+  if (!isRecord(value)) return null;
+  if (isRecord(value.file) && typeof (value.file as Record<string, unknown>).name === "string") {
+    return (value.file as Record<string, unknown>).name as string;
+  }
+  if (typeof value.name === "string" && typeof value.path === "string") {
+    return (value.basename as string) || value.name;
+  }
+  return null;
+}
+
+function listContainsName(list: unknown[], name: string): boolean {
+  return list.some((item) => {
+    if (typeof item !== "string") return false;
+    const match = item.match(/^\[\[([^\]|]+)(?:\|[^\]]+)?\]\]$/);
+    if (match) {
+      const target = match[1];
+      return target === name || target.endsWith(`/${name}`);
+    }
+    return item === name;
+  });
+}
+
 function isDateValue(value: unknown): value is Date {
   return value instanceof Date;
 }
@@ -262,7 +285,11 @@ registerGlobalFunction("if", ([cond, whenTrue, whenFalse]) => {
 });
 
 registerGlobalFunction("contains", ([haystack, needle]) => {
-  if (Array.isArray(haystack)) return haystack.includes(needle);
+  if (Array.isArray(haystack)) {
+    if (haystack.includes(needle)) return true;
+    const name = resolveSelfName(needle);
+    return name ? listContainsName(haystack, name) : false;
+  }
   if (typeof haystack === "string") return haystack.includes(toStringValue(needle));
   return false;
 });
@@ -676,7 +703,9 @@ registerMethodFunction("string", "asFile", (target, _args, context) => {
 
 registerMethodFunction("list", "contains", (target, [needle]) => {
   if (!Array.isArray(target)) return false;
-  return target.includes(needle);
+  if (target.includes(needle)) return true;
+  const name = resolveSelfName(needle);
+  return name ? listContainsName(target, name) : false;
 });
 
 registerMethodFunction("list", "containsAll", (target, args) => {

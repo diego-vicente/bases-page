@@ -264,6 +264,93 @@ describe("list functions and methods", () => {
     expect(evaluate("numbers.contains(99)", context)).toBe(false);
   });
 
+  it("matches self-context wikilinks in list.contains", () => {
+    const ctx = {
+      ...context,
+      self: {
+        file: {
+          name: "Paul Chambers",
+          path: "artists/Paul Chambers.md",
+          folder: "artists",
+          ext: "md",
+        },
+      },
+      note: { ...context.note, list: ["[[Paul Chambers]]"] },
+    };
+    expect(evaluate("list.contains(this)", ctx)).toBe(true);
+  });
+
+  it("matches self-context bare names and path-qualified wikilinks", () => {
+    const self = {
+      file: {
+        name: "Paul Chambers",
+        path: "artists/Paul Chambers.md",
+        folder: "artists",
+        ext: "md",
+      },
+    };
+    const bareCtx = { ...context, self, note: { ...context.note, list: ["Paul Chambers"] } };
+    expect(evaluate("list.contains(this)", bareCtx)).toBe(true);
+    const pathCtx = {
+      ...context,
+      self,
+      note: { ...context.note, list: ["[[jazz/Paul Chambers]]"] },
+    };
+    expect(evaluate("list.contains(this)", pathCtx)).toBe(true);
+  });
+
+  it("matches self-context in global contains", () => {
+    const ctx = {
+      ...context,
+      self: {
+        file: {
+          name: "Paul Chambers",
+          path: "artists/Paul Chambers.md",
+          folder: "artists",
+          ext: "md",
+        },
+      },
+      note: { ...context.note, list: ["[[Paul Chambers]]"] },
+    };
+    expect(evaluate("contains(list, this)", ctx)).toBe(true);
+  });
+
+  it("resolves self names from wrapper and file values", () => {
+    const wrapperCtx = {
+      ...context,
+      note: {
+        ...context.note,
+        list: ["[[Miles Davis]]"],
+        wrapper: { file: { name: "Miles Davis" } },
+      },
+    };
+    expect(evaluate("list.contains(wrapper)", wrapperCtx)).toBe(true);
+
+    const fileValue = {
+      name: "Ella Fitzgerald",
+      basename: "Ella Fitzgerald",
+      path: "singers/Ella Fitzgerald.md",
+      folder: "singers",
+      ext: "md",
+      tags: [],
+      links: [],
+    };
+    const fileCtx = {
+      ...context,
+      note: { ...context.note, list: ["[[Ella Fitzgerald]]"], fileValue },
+    };
+    expect(evaluate("list.contains(fileValue)", fileCtx)).toBe(true);
+  });
+
+  it("preserves normal contains behavior for string and number values", () => {
+    const ctx = {
+      ...context,
+      note: { ...context.note, list: ["alpha", "beta"], numericList: [1, 2, 3] },
+    };
+    expect(evaluate('list.contains("alpha")', ctx)).toBe(true);
+    expect(evaluate("numericList.contains(2)", ctx)).toBe(true);
+  });
+
   it("supports containsAll and containsAny", () => {
     expect(evaluate("numbers.containsAll(1, 3)", context)).toBe(true);
     expect(evaluate("numbers.containsAll(1, 99)", context)).toBe(false);
