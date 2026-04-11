@@ -122,6 +122,7 @@ function resolveBasesEntries(basesData, allFiles, view, selfContext) {
   const formulas = basesData.formulas ?? {};
   const fileLookup = /* @__PURE__ */ new Map();
   for (const fd of allFiles) {
+    if (fd.unlisted === true) continue;
     const fdSlug = typeof fd.slug === "string" ? fd.slug : "";
     if (!fdSlug) continue;
     const fdPath = getFilePath(fd, fdSlug);
@@ -140,6 +141,7 @@ function resolveBasesEntries(basesData, allFiles, view, selfContext) {
     }
   }
   for (const fileData of allFiles) {
+    if (fileData.unlisted === true) continue;
     const slug = typeof fileData.slug === "string" ? fileData.slug : "";
     if (!slug) continue;
     const filePath = typeof fileData.filePath === "string" ? fileData.filePath : "";
@@ -907,5 +909,5 @@ var BasesBody_default = ((opts) => {
 });
 
 export { BasesBody_default, ViewSelector, i18n, registerBuiltinViews, resolveBasesEntries };
-//# sourceMappingURL=chunk-3G36OPRY.js.map
-//# sourceMappingURL=chunk-3G36OPRY.js.map
+//# sourceMappingURL=chunk-L5TBETLD.js.map
+//# sourceMappingURL=chunk-L5TBETLD.js.map

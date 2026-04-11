@@ -9,6 +9,7 @@ type FileInput = {
   frontmatter?: Record<string, unknown>;
   links?: string[];
   outgoingLinks?: string[];
+  unlisted?: boolean;
   dates?: {
     created: string;
     modified: string;
@@ -34,14 +35,18 @@ function makeFile(input: FileInput): QuartzPluginData {
         published: new Date(input.dates.published ?? input.dates.modified),
       }
     : undefined;
-  return {
+  const result = {
     slug: asFullSlug(input.slug),
     filePath: asFilePath(input.filePath ?? `${input.slug}.md`),
     frontmatter,
     links: asSimpleSlugs(input.links),
     outgoingLinks: asSimpleSlugs(input.outgoingLinks),
     dates,
-  };
+  } as QuartzPluginData;
+  if (input.unlisted === true) {
+    (result as Record<string, unknown>).unlisted = true;
+  }
+  return result;
 }
 
 const baseFiles: QuartzPluginData[] = [
@@ -112,6 +117,88 @@ describe("resolveBasesEntries", () => {
     const result = resolveBasesEntries(basesData, baseFiles, view);
     expect(result.entries).toHaveLength(1);
     expect(result.entries[0]?.slug).toBe("notes/alpha");
+  });
+
+  it("excludes unlisted pages from the rendered entries", () => {
+    const basesData: BasesData = {};
+    const files = [
+      ...baseFiles,
+      makeFile({
+        slug: "secret/hidden",
+        filePath: "secret/hidden.md",
+        frontmatter: { title: "Hidden", status: "done", priority: 9 },
+        unlisted: true,
+      }),
+    ];
+    const result = resolveBasesEntries(basesData, files);
+    expect(result.entries).toHaveLength(2);
+    expect(result.entries.find((e) => e.slug === "secret/hidden")).toBeUndefined();
+    expect(result.total).toBe(2);
+  });
+
+  it("excludes unlisted pages even when a matching filter would include them", () => {
+    const basesData: BasesData = {
+      filters: "priority >= 1",
+    };
+    const files = [
+      ...baseFiles,
+      makeFile({
+        slug: "secret/hidden",
+        filePath: "secret/hidden.md",
+        frontmatter: { title: "Hidden", priority: 10 },
+        unlisted: true,
+      }),
+    ];
+    const result = resolveBasesEntries(basesData, files);
+    expect(result.entries.find((e) => e.slug === "secret/hidden")).toBeUndefined();
+  });
+
+  it("includes pages with unlisted: false", () => {
+    const basesData: BasesData = {};
+    const files = [
+      ...baseFiles,
+      makeFile({
+        slug: "secret/not-hidden",
+        filePath: "secret/not-hidden.md",
+        frontmatter: { title: "Not Hidden" },
+        unlisted: false,
+      }),
+    ];
+    const result = resolveBasesEntries(basesData, files);
+    expect(result.entries).toHaveLength(3);
+    expect(result.entries.find((e) => e.slug === "secret/not-hidden")).toBeDefined();
+  });
+
+  it("unlisted pages cannot be dereferenced via .asFile() from a visible page", () => {
+    const basesData: BasesData = {
+      formulas: {
+        linkedTitle: "note.linked.asFile().name",
+      },
+    };
+    const files = [
+      makeFile({
+        slug: "visible/page",
+        filePath: "visible/page.md",
+        frontmatter: {
+          title: "Visible",
+          linked: "secret/hidden",
+        },
+      }),
+      makeFile({
+        slug: "secret/hidden",
+        filePath: "secret/hidden.md",
+        frontmatter: { title: "Hidden Secret" },
+        unlisted: true,
+      }),
+    ];
+    const result = resolveBasesEntries(basesData, files);
+    expect(result.entries).toHaveLength(1);
+    const visible = result.entries[0];
+    expect(visible?.slug).toBe("visible/page");
+    // The unlisted page must NOT be resolvable via asFile() — the fileLookup
+    // excludes unlisted pages, so formula evaluation returns undefined rather
+    // than the unlisted page's title ("Hidden Secret").
+    expect(visible?.formulaValues?.linkedTitle).not.toBe("Hidden Secret");
   });
 
   it("evaluates formulas on entries", () => {

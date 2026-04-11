@@ -130,6 +130,7 @@ export function resolveBasesEntries(
 
   const fileLookup = new Map<string, EvalContext["file"]>();
   for (const fd of allFiles) {
+    if ((fd as { unlisted?: unknown }).unlisted === true) continue;
     const fdSlug = typeof fd.slug === "string" ? fd.slug : "";
     if (!fdSlug) continue;
     const fdPath = getFilePath(fd, fdSlug);
@@ -153,6 +154,7 @@ export function resolveBasesEntries(
   }
 
   for (const fileData of allFiles) {
+    if ((fileData as { unlisted?: unknown }).unlisted === true) continue;
     const slug = typeof fileData.slug === "string" ? fileData.slug : "";
     if (!slug) continue;
 

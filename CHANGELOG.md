@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Added `yaml` and `unist-util-visit` to devDependencies (were listed as peer dependencies but missing from devDependencies, causing `tsc --noEmit` failures).
+- Respect the `file.data.unlisted` convention in `resolveBasesEntries`. Pages marked `unlisted: true` are now excluded from every rendered base view (table, list, board, cards, gallery, and any custom view registered via `viewRegistry`), regardless of whether the base's filter expression would otherwise match them. Fixes a privacy leak where encrypted-unlisted and plain-unlisted pages showed up in base views built from queries like `file.ext == "md"` that matched the entire content directory. Both the main entry loop and the internal `fileLookup` used by `.asFile()` method resolution are filtered, so unlisted pages also cannot be dereferenced from formulas on visible pages. The convention is the same one respected by `content-index`, `search`, `backlinks`, `recent-notes`, `folder-page`, and `tag-page`, and is written by `@quartz-community/unlisted-pages` and `@quartz-community/encrypted-pages` (when `unlistWhenEncrypted` or per-page `unlisted: true`/`stealth: true` is set).
 
 ## [0.2.0]
 
