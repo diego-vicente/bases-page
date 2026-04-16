@@ -1399,6 +1399,7 @@ var require_stringify = __commonJS({
         nullStr: "null",
         simpleKeys: false,
         singleQuote: null,
+        trailingComma: false,
         trueStr: "true",
         verifyAliasOrder: true
       }, doc.schema.toStringOptions, options);
@@ -1910,12 +1911,19 @@ ${indent}${line}` : "\n";
         if (comment)
           reqNewline = true;
         let str = stringify.stringify(item, itemCtx, () => comment = null);
-        if (i2 < items.length - 1)
+        reqNewline || (reqNewline = lines.length > linesAtValue || str.includes("\n"));
+        if (i2 < items.length - 1) {
           str += ",";
+        } else if (ctx.options.trailingComma) {
+          if (ctx.options.lineWidth > 0) {
+            reqNewline || (reqNewline = lines.reduce((sum, line) => sum + line.length + 2, 2) + (str.length + 2) > ctx.options.lineWidth);
+          }
+          if (reqNewline) {
+            str += ",";
+          }
+        }
         if (comment)
           str += stringifyComment.lineComment(str, itemIndent, commentString(comment));
-        if (!reqNewline && (lines.length > linesAtValue || str.includes("\n")))
-          reqNewline = true;
         lines.push(str);
         linesAtValue = lines.length;
       }
@@ -4889,17 +4897,22 @@ var require_compose_node = __commonJS({
         case "block-map":
         case "block-seq":
         case "flow-collection":
-          node = composeCollection.composeCollection(CN, ctx, token, props, onError);
-          if (anchor)
-            node.anchor = anchor.source.substring(1);
+          try {
+            node = composeCollection.composeCollection(CN, ctx, token, props, onError);
+            if (anchor)
+              node.anchor = anchor.source.substring(1);
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            onError(token, "RESOURCE_EXHAUSTION", message);
+          }
           break;
         default: {
           const message = token.type === "error" ? token.message : `Unsupported token (type: ${token.type})`;
           onError(token, "UNEXPECTED_TOKEN", message);
-          node = composeEmptyNode(ctx, token.offset, void 0, null, props, onError);
           isSrcToken = false;
         }
       }
+      node ?? (node = composeEmptyNode(ctx, token.offset, void 0, null, props, onError));
       if (anchor && node.anchor === "")
         onError(anchor, "BAD_ALIAS", "Anchor cannot be an empty string");
       if (atKey && ctx.options.stringKeys && (!identity.isScalar(node) || typeof node.value !== "string" || node.tag && node.tag !== "tag:yaml.org,2002:str")) {
@@ -7502,13 +7515,16 @@ var z = Object.assign;
 var H = "";
 var N = "<!--$s-->";
 var q = "<!--/$s-->";
-function B(a2, u2, s3) {
+function B(e2) {
+  return "string" == typeof e2 ? N + e2 + q : W(e2) ? (e2.unshift(N), e2.push(q), e2) : e2 && "function" == typeof e2.then ? e2.then(B) : N + e2 + q;
+}
+function I(a2, u2, s3) {
   var l2 = options[i];
   options[i] = true, D = options.__b, P = options[r], $ = options.__r, U = options.unmount;
   var f2 = h$1(Fragment, null);
   f2[c] = [a2];
   try {
-    var p2 = O(a2, u2 || F, false, void 0, f2, false, s3);
+    var p2 = R(a2, u2 || F, false, void 0, f2, false, s3);
     return W(p2) ? p2.join(H) : p2;
   } catch (e2) {
     if (e2.then) throw new Error('Use "renderToStringAsync" for suspenseful rendering.');
@@ -7517,11 +7533,11 @@ function B(a2, u2, s3) {
     options[o] && options[o](a2, M), options[i] = l2, M.length = 0;
   }
 }
-function I(e2, t2) {
+function O(e2, t2) {
   var n2, r2 = e2.type, o2 = true;
   return e2[a] ? (o2 = false, (n2 = e2[a]).state = n2[s]) : n2 = new r2(e2.props, t2), e2[a] = n2, n2.__v = e2, n2.props = e2.props, n2.context = t2, v(n2), null == n2.state && (n2.state = F), null == n2[s] && (n2[s] = n2.state), r2.getDerivedStateFromProps ? n2.state = z({}, n2.state, r2.getDerivedStateFromProps(n2.props, n2.state)) : o2 && n2.componentWillMount ? (n2.componentWillMount(), n2.state = n2[s] !== n2.state ? n2[s] : n2.state) : !o2 && n2.componentWillUpdate && n2.componentWillUpdate(), $ && $(e2), n2.render(n2.props, n2.state, t2);
 }
-function O(t2, r2, o2, i2, u2, _2, b2) {
+function R(t2, r2, o2, i2, u2, _2, b2) {
   if (null == t2 || true === t2 || false === t2 || t2 === H) return H;
   var x2 = typeof t2;
   if ("object" != x2) return "function" == x2 ? H : "string" == x2 ? g(t2) : t2 + H;
@@ -7531,7 +7547,7 @@ function O(t2, r2, o2, i2, u2, _2, b2) {
     for (var S = t2.length, L = 0; L < S; L++) {
       var E = t2[L];
       if (null != E && "boolean" != typeof E) {
-        var j, T = O(E, r2, o2, i2, u2, _2, b2);
+        var j, T = R(E, r2, o2, i2, u2, _2, b2);
         "string" == typeof T ? C2 += T : (k2 || (k2 = new Array(S)), C2 && k2.push(C2), C2 = H, W(T) ? (j = k2).push.apply(j, T) : k2.push(T));
       }
     }
@@ -7541,81 +7557,79 @@ function O(t2, r2, o2, i2, u2, _2, b2) {
   t2.__ = u2, D && D(t2);
   var Z = t2.type, M2 = t2.props;
   if ("function" == typeof Z) {
-    var B2, V2, K, J = r2;
+    var N2, q2, I2, K2 = r2;
     if (Z === Fragment) {
       if ("tpl" in M2) {
-        for (var Q = H, X = 0; X < M2.tpl.length; X++) if (Q += M2.tpl[X], M2.exprs && X < M2.exprs.length) {
-          var Y = M2.exprs[X];
-          if (null == Y) continue;
-          "object" != typeof Y || void 0 !== Y.constructor && !W(Y) ? Q += Y : Q += O(Y, r2, o2, i2, t2, _2, b2);
+        for (var G = H, Q = 0; Q < M2.tpl.length; Q++) if (G += M2.tpl[Q], M2.exprs && Q < M2.exprs.length) {
+          var X = M2.exprs[Q];
+          if (null == X) continue;
+          "object" != typeof X || void 0 !== X.constructor && !W(X) ? G += X : G += R(X, r2, o2, i2, t2, _2, b2);
         }
-        return Q;
+        return G;
       }
       if ("UNSTABLE_comment" in M2) return "<!--" + g(M2.UNSTABLE_comment) + "-->";
-      V2 = M2.children;
+      q2 = M2.children;
     } else {
-      if (null != (B2 = Z.contextType)) {
-        var ee = r2[B2.__c];
-        J = ee ? ee.props.value : B2.__;
+      if (null != (N2 = Z.contextType)) {
+        var Y = r2[N2.__c];
+        K2 = Y ? Y.props.value : N2.__;
       }
-      var te = Z.prototype && "function" == typeof Z.prototype.render;
-      if (te) V2 = /**#__NOINLINE__**/
-      I(t2, J), K = t2[a];
+      var ee = Z.prototype && "function" == typeof Z.prototype.render;
+      if (ee) q2 = /**#__NOINLINE__**/
+      O(t2, K2), I2 = t2[a];
       else {
-        t2[a] = K = /**#__NOINLINE__**/
-        A(t2, J);
-        for (var ne = 0; y(K) && ne++ < 25; ) {
-          m(K), $ && $(t2);
+        t2[a] = I2 = /**#__NOINLINE__**/
+        A(t2, K2);
+        for (var te = 0; y(I2) && te++ < 25; ) {
+          m(I2), $ && $(t2);
           try {
-            V2 = Z.call(K, M2, J);
+            q2 = Z.call(I2, M2, K2);
           } catch (e2) {
             throw e2;
           }
         }
-        v(K);
+        v(I2);
       }
-      if (null != K.getChildContext && (r2 = z({}, r2, K.getChildContext())), te && options.errorBoundaries && (Z.getDerivedStateFromError || K.componentDidCatch)) {
-        V2 = null != V2 && V2.type === Fragment && null == V2.key && null == V2.props.tpl ? V2.props.children : V2;
+      if (null != I2.getChildContext && (r2 = z({}, r2, I2.getChildContext())), ee && options.errorBoundaries && (Z.getDerivedStateFromError || I2.componentDidCatch)) {
+        q2 = null != q2 && q2.type === Fragment && null == q2.key && null == q2.props.tpl ? q2.props.children : q2;
         try {
-          return O(V2, r2, o2, i2, t2, _2, false);
+          return R(q2, r2, o2, i2, t2, _2, false);
         } catch (e2) {
-          return Z.getDerivedStateFromError && (K[s] = Z.getDerivedStateFromError(e2)), K.componentDidCatch && K.componentDidCatch(e2, F), y(K) ? (V2 = I(t2, r2), null != (K = t2[a]).getChildContext && (r2 = z({}, r2, K.getChildContext())), O(V2 = null != V2 && V2.type === Fragment && null == V2.key && null == V2.props.tpl ? V2.props.children : V2, r2, o2, i2, t2, _2, b2)) : H;
+          return Z.getDerivedStateFromError && (I2[s] = Z.getDerivedStateFromError(e2)), I2.componentDidCatch && I2.componentDidCatch(e2, F), y(I2) ? (q2 = O(t2, r2), null != (I2 = t2[a]).getChildContext && (r2 = z({}, r2, I2.getChildContext())), R(q2 = null != q2 && q2.type === Fragment && null == q2.key && null == q2.props.tpl ? q2.props.children : q2, r2, o2, i2, t2, _2, b2)) : H;
         } finally {
           P && P(t2), U && U(t2);
         }
       }
     }
-    V2 = null != V2 && V2.type === Fragment && null == V2.key && null == V2.props.tpl ? V2.props.children : V2;
+    q2 = null != q2 && q2.type === Fragment && null == q2.key && null == q2.props.tpl ? q2.props.children : q2;
     try {
-      var re = O(V2, r2, o2, i2, t2, _2, b2);
-      return P && P(t2), options.unmount && options.unmount(t2), t2._suspended ? "string" == typeof re ? N + re + q : W(re) ? (re.unshift(N), re.push(q), re) : re.then(function(e2) {
-        return N + e2 + q;
-      }) : re;
+      var ne = R(q2, r2, o2, i2, t2, _2, b2);
+      return P && P(t2), options.unmount && options.unmount(t2), t2._suspended ? B(ne) : ne;
     } catch (n2) {
       if (b2 && b2.onError) {
-        var oe = (function e2(n3) {
+        var re = (function e2(n3) {
           return b2.onError(n3, t2, function(t3, n4) {
             try {
-              return O(t3, r2, o2, i2, n4, _2, b2);
+              return R(t3, r2, o2, i2, n4, _2, b2);
             } catch (t4) {
               return e2(t4);
             }
           });
         })(n2);
-        if (void 0 !== oe) return oe;
-        var ie = options.__e;
-        return ie && ie(n2, t2), H;
+        if (void 0 !== re) return re;
+        var oe = options.__e;
+        return oe && oe(n2, t2), H;
       }
       throw n2;
     }
   }
-  var ae, ce = "<" + Z, ue = H;
-  for (var se in M2) {
-    var le = M2[se];
-    if ("function" != typeof (le = G(le) ? le.value : le) || "class" === se || "className" === se) {
-      switch (se) {
+  var ie, ae = "<" + Z, ce = H;
+  for (var ue in M2) {
+    var se = M2[ue];
+    if ("function" != typeof (se = J(se) ? se.value : se) || "class" === ue || "className" === ue) {
+      switch (ue) {
         case "children":
-          ae = le;
+          ie = se;
           continue;
         case "key":
         case "ref":
@@ -7624,61 +7638,61 @@ function O(t2, r2, o2, i2, u2, _2, b2) {
           continue;
         case "htmlFor":
           if ("for" in M2) continue;
-          se = "for";
+          ue = "for";
           break;
         case "className":
           if ("class" in M2) continue;
-          se = "class";
+          ue = "class";
           break;
         case "defaultChecked":
-          se = "checked";
+          ue = "checked";
           break;
         case "defaultSelected":
-          se = "selected";
+          ue = "selected";
           break;
         case "defaultValue":
         case "value":
-          switch (se = "value", Z) {
+          switch (ue = "value", Z) {
             case "textarea":
-              ae = le;
+              ie = se;
               continue;
             case "select":
-              i2 = le;
+              i2 = se;
               continue;
             case "option":
-              i2 != le || "selected" in M2 || (ce += " selected");
+              i2 != se || "selected" in M2 || (ae += " selected");
           }
           break;
         case "dangerouslySetInnerHTML":
-          ue = le && le.__html;
+          ce = se && se.__html;
           continue;
         case "style":
-          "object" == typeof le && (le = w(le));
+          "object" == typeof se && (se = w(se));
           break;
         case "acceptCharset":
-          se = "accept-charset";
+          ue = "accept-charset";
           break;
         case "httpEquiv":
-          se = "http-equiv";
+          ue = "http-equiv";
           break;
         default:
-          if (f.test(se)) se = se.replace(f, "$1:$2").toLowerCase();
+          if (f.test(ue)) ue = ue.replace(f, "$1:$2").toLowerCase();
           else {
-            if (l.test(se)) continue;
-            "-" !== se[4] && !d.has(se) || null == le ? o2 ? h.test(se) && (se = "panose1" === se ? "panose-1" : se.replace(/([A-Z])/g, "-$1").toLowerCase()) : p.test(se) && (se = se.toLowerCase()) : le += H;
+            if (l.test(ue)) continue;
+            "-" !== ue[4] && !d.has(ue) || null == se ? o2 ? h.test(ue) && (ue = "panose1" === ue ? "panose-1" : ue.replace(/([A-Z])/g, "-$1").toLowerCase()) : p.test(ue) && (ue = ue.toLowerCase()) : se += H;
           }
       }
-      null != le && false !== le && (ce = true === le || le === H ? ce + " " + se : ce + " " + se + '="' + ("string" == typeof le ? g(le) : le + H) + '"');
+      null != se && false !== se && (ae = true === se || se === H ? ae + " " + ue : ae + " " + ue + '="' + ("string" == typeof se ? g(se) : se + H) + '"');
     }
   }
-  if (l.test(Z)) throw new Error(Z + " is not a valid HTML tag name in " + ce + ">");
-  if (ue || ("string" == typeof ae ? ue = g(ae) : null != ae && false !== ae && true !== ae && (ue = O(ae, r2, "svg" === Z || "foreignObject" !== Z && o2, i2, t2, _2, b2))), P && P(t2), U && U(t2), !ue && R.has(Z)) return ce + "/>";
-  var fe = "</" + Z + ">", pe = ce + ">";
-  return W(ue) ? [pe].concat(ue, [fe]) : "string" != typeof ue ? [pe, ue, fe] : pe + ue + fe;
+  if (l.test(Z)) throw new Error(Z + " is not a valid HTML tag name in " + ae + ">");
+  if (ce || ("string" == typeof ie ? ce = g(ie) : null != ie && false !== ie && true !== ie && (ce = R(ie, r2, "svg" === Z || "foreignObject" !== Z && o2, i2, t2, _2, b2))), P && P(t2), U && U(t2), !ce && V.has(Z)) return ae + "/>";
+  var le = "</" + Z + ">", fe = ae + ">";
+  return W(ce) ? [fe].concat(ce, [le]) : "string" != typeof ce ? [fe, ce, le] : fe + ce + le;
 }
-var R = /* @__PURE__ */ new Set(["area", "base", "br", "col", "command", "embed", "hr", "img", "input", "keygen", "link", "meta", "param", "source", "track", "wbr"]);
-var V = B;
-function G(e2) {
+var V = /* @__PURE__ */ new Set(["area", "base", "br", "col", "command", "embed", "hr", "img", "input", "keygen", "link", "meta", "param", "source", "track", "wbr"]);
+var K = I;
+function J(e2) {
   return null !== e2 && "object" == typeof e2 && "function" == typeof e2.peek && "value" in e2;
 }
 
@@ -18008,7 +18022,7 @@ function renderBasesInline(basesData, allFiles, locale, localeStrings, opts, slu
     const reg = viewRegistry.get(typeId);
     if (reg?.css) viewCssChunks.push(reg.css);
   }
-  const selectorHtml = V(
+  const selectorHtml = K(
     h$1(Fragment, null, ViewSelector({ views, activeIndex: initialIndex, locale }))
   );
   const viewPanels = views.map((view, index2) => {
@@ -18020,7 +18034,7 @@ function renderBasesInline(basesData, allFiles, locale, localeStrings, opts, slu
     if (entries.length === 0) {
       innerHtml = `<div class="bases-empty">${localeStrings.noData}</div>`;
     } else if (Renderer) {
-      innerHtml = V(
+      innerHtml = K(
         h$1(
           Fragment,
           null,
