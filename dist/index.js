@@ -1,16 +1,14 @@
 import { createRequire } from 'module';
-import { BasesBody_default, resolveBasesEntries, registerBuiltinViews, i18n, ViewSelector } from './chunk-L5TBETLD.js';
-export { BasesBody_default as BasesBody } from './chunk-L5TBETLD.js';
+import { BasesBody_default, slugifyFilePath, resolveBasesEntries, registerBuiltinViews, i18n, k, S, ViewSelector, l } from './chunk-XCYIFVJU.js';
+export { BasesBody_default as BasesBody, slugifyPath, transformLink } from './chunk-XCYIFVJU.js';
 import { registerCustomViews, viewRegistry } from './chunk-2AUMER56.js';
 export { registerCustomViews, viewRegistry } from './chunk-2AUMER56.js';
 export { compile, evaluate, evaluateFilter, resolvePropertyValue } from './chunk-GIL63DBV.js';
 import { __commonJS, __require, __export, __toESM } from './chunk-TDUJOYTU.js';
-import { h as h$1, Fragment, options } from 'preact';
-import { VFile } from 'vfile';
+import default2, { join } from 'path';
+import default3 from 'process';
+import { fileURLToPath } from 'url';
 import { readFileSync } from 'fs';
-import { join } from 'path';
-import { slugifyFilePath } from '@quartz-community/utils';
-export { slugifyPath, transformLink } from '@quartz-community/utils';
 
 createRequire(import.meta.url);
 
@@ -481,13 +479,13 @@ var require_applyReviver = __commonJS({
               val[i2] = v1;
           }
         } else if (val instanceof Map) {
-          for (const k2 of Array.from(val.keys())) {
-            const v0 = val.get(k2);
-            const v1 = applyReviver(reviver, val, k2, v0);
+          for (const k3 of Array.from(val.keys())) {
+            const v0 = val.get(k3);
+            const v1 = applyReviver(reviver, val, k3, v0);
             if (v1 === void 0)
-              val.delete(k2);
+              val.delete(k3);
             else if (v1 !== v0)
-              val.set(k2, v1);
+              val.set(k3, v1);
           }
         } else if (val instanceof Set) {
           for (const v0 of Array.from(val)) {
@@ -500,12 +498,12 @@ var require_applyReviver = __commonJS({
             }
           }
         } else {
-          for (const [k2, v0] of Object.entries(val)) {
-            const v1 = applyReviver(reviver, val, k2, v0);
+          for (const [k3, v0] of Object.entries(val)) {
+            const v1 = applyReviver(reviver, val, k3, v0);
             if (v1 === void 0)
-              delete val[k2];
+              delete val[k3];
             else if (v1 !== v0)
-              val[k2] = v1;
+              val[k3] = v1;
           }
         }
       }
@@ -735,13 +733,13 @@ var require_createNode = __commonJS({
     var defaultTagPrefix = "tag:yaml.org,2002:";
     function findTagObject(value, tagName, tags) {
       if (tagName) {
-        const match = tags.filter((t2) => t2.tag === tagName);
-        const tagObj = match.find((t2) => !t2.format) ?? match[0];
+        const match = tags.filter((t) => t.tag === tagName);
+        const tagObj = match.find((t) => !t.format) ?? match[0];
         if (!tagObj)
           throw new Error(`Tag ${tagName} not found`);
         return tagObj;
       }
-      return tags.find((t2) => t2.identify?.(value) && !t2.format);
+      return tags.find((t) => t.identify?.(value) && !t.format);
     }
     function createNode(value, tagName, ctx) {
       if (identity.isDocument(value))
@@ -809,13 +807,13 @@ var require_Collection = __commonJS({
     function collectionFromPath(schema, path, value) {
       let v2 = value;
       for (let i2 = path.length - 1; i2 >= 0; --i2) {
-        const k2 = path[i2];
-        if (typeof k2 === "number" && Number.isInteger(k2) && k2 >= 0) {
+        const k3 = path[i2];
+        if (typeof k3 === "number" && Number.isInteger(k3) && k3 >= 0) {
           const a2 = [];
-          a2[k2] = v2;
+          a2[k3] = v2;
           v2 = a2;
         } else {
-          v2 = /* @__PURE__ */ new Map([[k2, v2]]);
+          v2 = /* @__PURE__ */ new Map([[k3, v2]]);
         }
       }
       return createNode.createNode(v2, void 0, {
@@ -903,8 +901,8 @@ var require_Collection = __commonJS({
         return this.items.every((node) => {
           if (!identity.isPair(node))
             return false;
-          const n2 = node.value;
-          return n2 == null || allowScalar && identity.isScalar(n2) && n2.value == null && !n2.commentBefore && !n2.comment && !n2.tag;
+          const n = node.value;
+          return n == null || allowScalar && identity.isScalar(n) && n.value == null && !n.commentBefore && !n.comment && !n.tag;
         });
       }
       /**
@@ -1364,10 +1362,10 @@ ${indent}`);
       let res = _stringify(type);
       if (res === null) {
         const { defaultKeyType, defaultStringType } = ctx.options;
-        const t2 = implicitKey && defaultKeyType || defaultStringType;
-        res = _stringify(t2);
+        const t = implicitKey && defaultKeyType || defaultStringType;
+        res = _stringify(t);
         if (res === null)
-          throw new Error(`Unsupported default string type ${t2}`);
+          throw new Error(`Unsupported default string type ${t}`);
       }
       return res;
     }
@@ -1426,24 +1424,24 @@ var require_stringify = __commonJS({
     }
     function getTagObject(tags, item) {
       if (item.tag) {
-        const match = tags.filter((t2) => t2.tag === item.tag);
+        const match = tags.filter((t) => t.tag === item.tag);
         if (match.length > 0)
-          return match.find((t2) => t2.format === item.format) ?? match[0];
+          return match.find((t) => t.format === item.format) ?? match[0];
       }
       let tagObj = void 0;
       let obj;
       if (identity.isScalar(item)) {
         obj = item.value;
-        let match = tags.filter((t2) => t2.identify?.(obj));
+        let match = tags.filter((t) => t.identify?.(obj));
         if (match.length > 1) {
-          const testMatch = match.filter((t2) => t2.test);
+          const testMatch = match.filter((t) => t.test);
           if (testMatch.length > 0)
             match = testMatch;
         }
-        tagObj = match.find((t2) => t2.format === item.format) ?? match.find((t2) => !t2.format);
+        tagObj = match.find((t) => t.format === item.format) ?? match.find((t) => !t.format);
       } else {
         obj = item;
-        tagObj = tags.find((t2) => t2.nodeClass && obj instanceof t2.nodeClass);
+        tagObj = tags.find((t) => t.nodeClass && obj instanceof t.nodeClass);
       }
       if (!tagObj) {
         const name = obj?.constructor?.name ?? (obj === null ? "null" : typeof obj);
@@ -1778,9 +1776,9 @@ var require_Pair = __commonJS({
     var addPairToJSMap = require_addPairToJSMap();
     var identity = require_identity();
     function createPair(key, value, ctx) {
-      const k2 = createNode.createNode(key, void 0, ctx);
+      const k3 = createNode.createNode(key, void 0, ctx);
       const v2 = createNode.createNode(value, void 0, ctx);
-      return new Pair(k2, v2);
+      return new Pair(k3, v2);
     }
     var Pair = class _Pair {
       constructor(key, value = null) {
@@ -1969,12 +1967,12 @@ var require_YAMLMap = __commonJS({
     var Pair = require_Pair();
     var Scalar = require_Scalar();
     function findPair(items, key) {
-      const k2 = identity.isScalar(key) ? key.value : key;
+      const k3 = identity.isScalar(key) ? key.value : key;
       for (const it of items) {
         if (identity.isPair(it)) {
-          if (it.key === key || it.key === k2)
+          if (it.key === key || it.key === k3)
             return it;
-          if (identity.isScalar(it.key) && it.key.value === k2)
+          if (identity.isScalar(it.key) && it.key.value === k3)
             return it;
         }
       }
@@ -2326,18 +2324,18 @@ var require_stringifyNumber = __commonJS({
       const num = typeof value === "number" ? value : Number(value);
       if (!isFinite(num))
         return isNaN(num) ? ".nan" : num < 0 ? "-.inf" : ".inf";
-      let n2 = Object.is(value, -0) ? "-0" : JSON.stringify(value);
-      if (!format && minFractionDigits && (!tag || tag === "tag:yaml.org,2002:float") && /^\d/.test(n2)) {
-        let i2 = n2.indexOf(".");
+      let n = Object.is(value, -0) ? "-0" : JSON.stringify(value);
+      if (!format && minFractionDigits && (!tag || tag === "tag:yaml.org,2002:float") && /^\d/.test(n)) {
+        let i2 = n.indexOf(".");
         if (i2 < 0) {
-          i2 = n2.length;
-          n2 += ".";
+          i2 = n.length;
+          n += ".";
         }
-        let d2 = minFractionDigits - (n2.length - i2 - 1);
+        let d2 = minFractionDigits - (n.length - i2 - 1);
         while (d2-- > 0)
-          n2 += "0";
+          n += "0";
       }
-      return n2;
+      return n;
     }
     exports$1.stringifyNumber = stringifyNumber;
   }
@@ -2576,9 +2574,9 @@ var require_binary = __commonJS({
         type ?? (type = Scalar.Scalar.BLOCK_LITERAL);
         if (type !== Scalar.Scalar.QUOTE_DOUBLE) {
           const lineWidth = Math.max(ctx.options.lineWidth - ctx.indent.length, ctx.options.minContentWidth);
-          const n2 = Math.ceil(str.length / lineWidth);
-          const lines = new Array(n2);
-          for (let i2 = 0, o2 = 0; i2 < n2; ++i2, o2 += lineWidth) {
+          const n = Math.ceil(str.length / lineWidth);
+          const lines = new Array(n);
+          for (let i2 = 0, o2 = 0; i2 < n; ++i2, o2 += lineWidth) {
             lines[i2] = str.substr(o2, lineWidth);
           }
           str = lines.join(type === Scalar.Scalar.BLOCK_LITERAL ? "\n" : " ");
@@ -2845,11 +2843,11 @@ var require_int2 = __commonJS({
             str = `0x${str}`;
             break;
         }
-        const n3 = BigInt(str);
-        return sign === "-" ? BigInt(-1) * n3 : n3;
+        const n2 = BigInt(str);
+        return sign === "-" ? BigInt(-1) * n2 : n2;
       }
-      const n2 = parseInt(str, radix);
-      return sign === "-" ? -1 * n2 : n2;
+      const n = parseInt(str, radix);
+      return sign === "-" ? -1 * n : n;
     }
     function intStringify(node, radix, prefix) {
       const { value } = node;
@@ -2996,15 +2994,15 @@ var require_timestamp = __commonJS({
     function parseSexagesimal(str, asBigInt) {
       const sign = str[0];
       const parts = sign === "-" || sign === "+" ? str.substring(1) : str;
-      const num = (n2) => asBigInt ? BigInt(n2) : Number(n2);
+      const num = (n) => asBigInt ? BigInt(n) : Number(n);
       const res = parts.replace(/_/g, "").split(":").reduce((res2, p2) => res2 * num(60) + num(p2), num(0));
       return sign === "-" ? num(-1) * res : res;
     }
     function stringifySexagesimal(node) {
       let { value } = node;
-      let num = (n2) => n2;
+      let num = (n) => n;
       if (typeof value === "bigint")
-        num = (n2) => BigInt(n2);
+        num = (n) => BigInt(n);
       else if (isNaN(value) || !isFinite(value))
         return stringifyNumber.stringifyNumber(node);
       let sign = "";
@@ -3024,7 +3022,7 @@ var require_timestamp = __commonJS({
           parts.unshift(value);
         }
       }
-      return sign + parts.map((n2) => String(n2).padStart(2, "0")).join(":").replace(/000000\d*$/, "");
+      return sign + parts.map((n) => String(n).padStart(2, "0")).join(":").replace(/000000\d*$/, "");
     }
     var intTime = {
       identify: (value) => typeof value === "bigint" || Number.isInteger(value),
@@ -3461,9 +3459,9 @@ var require_Document = __commonJS({
        * recursively wrapping all values as `Scalar` or `Collection` nodes.
        */
       createPair(key, value, options = {}) {
-        const k2 = this.createNode(key, null, options);
+        const k3 = this.createNode(key, null, options);
         const v2 = this.createNode(value, null, options);
-        return new Pair.Pair(k2, v2);
+        return new Pair.Pair(k3, v2);
       }
       /**
        * Removes a value from the document.
@@ -4328,7 +4326,7 @@ var require_compose_collection = __commonJS({
       if (!tagToken || !tagName || tagName === "!" || tagName === YAMLMap.YAMLMap.tagName && expType === "map" || tagName === YAMLSeq.YAMLSeq.tagName && expType === "seq") {
         return resolveCollection(CN, ctx, token, onError, tagName);
       }
-      let tag = ctx.schema.tags.find((t2) => t2.tag === tagName && t2.collection === expType);
+      let tag = ctx.schema.tags.find((t) => t.tag === tagName && t.collection === expType);
       if (!tag) {
         const kt = ctx.schema.knownTags[tagName];
         if (kt?.collection === expType) {
@@ -4479,9 +4477,9 @@ var require_resolve_block_scalar = __commonJS({
         if (!chomp && (ch === "-" || ch === "+"))
           chomp = ch;
         else {
-          const n2 = Number(ch);
-          if (!indent && n2)
-            indent = n2;
+          const n = Number(ch);
+          if (!indent && n)
+            indent = n;
           else if (error === -1)
             error = offset + i2;
         }
@@ -5687,8 +5685,8 @@ var require_lexer = __commonJS({
           return this.buffer[i2 + 1] === "\n";
         return false;
       }
-      charAt(n2) {
-        return this.buffer[this.pos + n2];
+      charAt(n) {
+        return this.buffer[this.pos + n];
       }
       continueScalar(offset) {
         let ch = this.buffer[offset];
@@ -5722,8 +5720,8 @@ var require_lexer = __commonJS({
           end -= 1;
         return this.buffer.substring(this.pos, end);
       }
-      hasChars(n2) {
-        return this.pos + n2 <= this.buffer.length;
+      hasChars(n) {
+        return this.pos + n <= this.buffer.length;
       }
       setNext(state) {
         this.buffer = this.buffer.substring(this.pos);
@@ -5732,8 +5730,8 @@ var require_lexer = __commonJS({
         this.next = state;
         return null;
       }
-      peek(n2) {
-        return this.buffer.substr(this.pos, n2);
+      peek(n) {
+        return this.buffer.substr(this.pos, n);
       }
       *parseNext(next2) {
         switch (next2) {
@@ -5782,8 +5780,8 @@ var require_lexer = __commonJS({
             else
               break;
           }
-          const n2 = (yield* this.pushCount(dirEnd)) + (yield* this.pushSpaces(true));
-          yield* this.pushCount(line.length - n2);
+          const n = (yield* this.pushCount(dirEnd)) + (yield* this.pushSpaces(true));
+          yield* this.pushCount(line.length - n);
           this.pushNewline();
           return "stream";
         }
@@ -5821,9 +5819,9 @@ var require_lexer = __commonJS({
         if (!ch1 && !this.atEnd)
           return this.setNext("block-start");
         if ((ch0 === "-" || ch0 === "?" || ch0 === ":") && isEmpty(ch1)) {
-          const n2 = (yield* this.pushCount(1)) + (yield* this.pushSpaces(true));
+          const n = (yield* this.pushCount(1)) + (yield* this.pushSpaces(true));
           this.indentNext = this.indentValue + 1;
-          this.indentValue += n2;
+          this.indentValue += n;
           return yield* this.parseBlockStart();
         }
         return "doc";
@@ -5833,10 +5831,10 @@ var require_lexer = __commonJS({
         const line = this.getLine();
         if (line === null)
           return this.setNext("doc");
-        let n2 = yield* this.pushIndicators();
-        switch (line[n2]) {
+        let n = yield* this.pushIndicators();
+        switch (line[n]) {
           case "#":
-            yield* this.pushCount(line.length - n2);
+            yield* this.pushCount(line.length - n);
           // fallthrough
           case void 0:
             yield* this.pushNewline();
@@ -5859,9 +5857,9 @@ var require_lexer = __commonJS({
             return yield* this.parseQuotedScalar();
           case "|":
           case ">":
-            n2 += yield* this.parseBlockScalarHeader();
-            n2 += yield* this.pushSpaces(true);
-            yield* this.pushCount(line.length - n2);
+            n += yield* this.parseBlockScalarHeader();
+            n += yield* this.pushSpaces(true);
+            yield* this.pushCount(line.length - n);
             yield* this.pushNewline();
             return yield* this.parseBlockScalar();
           default:
@@ -5892,18 +5890,18 @@ var require_lexer = __commonJS({
             return yield* this.parseLineStart();
           }
         }
-        let n2 = 0;
-        while (line[n2] === ",") {
-          n2 += yield* this.pushCount(1);
-          n2 += yield* this.pushSpaces(true);
+        let n = 0;
+        while (line[n] === ",") {
+          n += yield* this.pushCount(1);
+          n += yield* this.pushSpaces(true);
           this.flowKey = false;
         }
-        n2 += yield* this.pushIndicators();
-        switch (line[n2]) {
+        n += yield* this.pushIndicators();
+        switch (line[n]) {
           case void 0:
             return "flow";
           case "#":
-            yield* this.pushCount(line.length - n2);
+            yield* this.pushCount(line.length - n);
             return "flow";
           case "{":
           case "[":
@@ -5947,10 +5945,10 @@ var require_lexer = __commonJS({
             end = this.buffer.indexOf("'", end + 2);
         } else {
           while (end !== -1) {
-            let n2 = 0;
-            while (this.buffer[end - 1 - n2] === "\\")
-              n2 += 1;
-            if (n2 % 2 === 0)
+            let n = 0;
+            while (this.buffer[end - 1 - n] === "\\")
+              n += 1;
+            if (n % 2 === 0)
               break;
             end = this.buffer.indexOf('"', end + 1);
           }
@@ -6104,11 +6102,11 @@ var require_lexer = __commonJS({
         yield* this.pushToIndex(end + 1, true);
         return inFlow ? "flow" : "doc";
       }
-      *pushCount(n2) {
-        if (n2 > 0) {
-          yield this.buffer.substr(this.pos, n2);
-          this.pos += n2;
-          return n2;
+      *pushCount(n) {
+        if (n > 0) {
+          yield this.buffer.substr(this.pos, n);
+          this.pos += n;
+          return n;
         }
         return 0;
       }
@@ -6182,12 +6180,12 @@ var require_lexer = __commonJS({
         do {
           ch = this.buffer[++i2];
         } while (ch === " " || allowTabs && ch === "	");
-        const n2 = i2 - this.pos;
-        if (n2 > 0) {
-          yield this.buffer.substr(this.pos, n2);
+        const n = i2 - this.pos;
+        if (n > 0) {
+          yield this.buffer.substr(this.pos, n);
           this.pos = i2;
         }
-        return n2;
+        return n;
       }
       *pushUntil(test) {
         let i2 = this.pos;
@@ -6453,8 +6451,8 @@ var require_parser = __commonJS({
         }
         yield* this.pop();
       }
-      peek(n2) {
-        return this.stack[this.stack.length - n2];
+      peek(n) {
+        return this.stack[this.stack.length - n];
       }
       *pop(error) {
         const token = error ?? this.stack.pop();
@@ -7442,6 +7440,8 @@ function visit(tree, testOrVisitor, visitorOrReverse, maybeReverse) {
     return visitor(node, index2, parent);
   }
 }
+
+// node_modules/preact-render-to-string/dist/index.mjs
 var r = "diffed";
 var o = "__c";
 var i = "__s";
@@ -7449,25 +7449,25 @@ var a = "__c";
 var c = "__k";
 var u = "__d";
 var s = "__s";
-var l = /[\s\n\\/='"\0<>]/;
+var l2 = /[\s\n\\/='"\0<>]/;
 var f = /^(xlink|xmlns|xml)([A-Z])/;
 var p = /^(?:accessK|auto[A-Z]|cell|ch|col|cont|cross|dateT|encT|form[A-Z]|frame|hrefL|inputM|maxL|minL|noV|playsI|popoverT|readO|rowS|src[A-Z]|tabI|useM|item[A-Z])/;
 var h = /^ac|^ali|arabic|basel|cap|clipPath$|clipRule$|color|dominant|enable|fill|flood|font|glyph[^R]|horiz|image|letter|lighting|marker[^WUH]|overline|panose|pointe|paint|rendering|shape|stop|strikethrough|stroke|text[^L]|transform|underline|unicode|units|^v[^i]|^w|^xH/;
 var d = /* @__PURE__ */ new Set(["draggable", "spellcheck"]);
-function v(e2) {
-  void 0 !== e2.__g ? e2.__g |= 8 : e2[u] = true;
+function v(e) {
+  void 0 !== e.__g ? e.__g |= 8 : e[u] = true;
 }
-function m(e2) {
-  void 0 !== e2.__g ? e2.__g &= -9 : e2[u] = false;
+function m(e) {
+  void 0 !== e.__g ? e.__g &= -9 : e[u] = false;
 }
-function y(e2) {
-  return void 0 !== e2.__g ? !!(8 & e2.__g) : true === e2[u];
+function y(e) {
+  return void 0 !== e.__g ? !!(8 & e.__g) : true === e[u];
 }
 var _ = /["&<]/;
-function g(e2) {
-  if (0 === e2.length || false === _.test(e2)) return e2;
-  for (var t2 = 0, n2 = 0, r2 = "", o2 = ""; n2 < e2.length; n2++) {
-    switch (e2.charCodeAt(n2)) {
+function g(e) {
+  if (0 === e.length || false === _.test(e)) return e;
+  for (var t = 0, n = 0, r2 = "", o2 = ""; n < e.length; n++) {
+    switch (e.charCodeAt(n)) {
       case 34:
         o2 = "&quot;";
         break;
@@ -7480,29 +7480,29 @@ function g(e2) {
       default:
         continue;
     }
-    n2 !== t2 && (r2 += e2.slice(t2, n2)), r2 += o2, t2 = n2 + 1;
+    n !== t && (r2 += e.slice(t, n)), r2 += o2, t = n + 1;
   }
-  return n2 !== t2 && (r2 += e2.slice(t2, n2)), r2;
+  return n !== t && (r2 += e.slice(t, n)), r2;
 }
 var b = {};
 var x = /* @__PURE__ */ new Set(["animation-iteration-count", "border-image-outset", "border-image-slice", "border-image-width", "box-flex", "box-flex-group", "box-ordinal-group", "column-count", "fill-opacity", "flex", "flex-grow", "flex-negative", "flex-order", "flex-positive", "flex-shrink", "flood-opacity", "font-weight", "grid-column", "grid-row", "line-clamp", "line-height", "opacity", "order", "orphans", "stop-opacity", "stroke-dasharray", "stroke-dashoffset", "stroke-miterlimit", "stroke-opacity", "stroke-width", "tab-size", "widows", "z-index", "zoom"]);
-var k = /[A-Z]/g;
-function w(e2) {
-  var t2 = "";
-  for (var n2 in e2) {
-    var r2 = e2[n2];
+var k2 = /[A-Z]/g;
+function w(e) {
+  var t = "";
+  for (var n in e) {
+    var r2 = e[n];
     if (null != r2 && "" !== r2) {
-      var o2 = "-" == n2[0] ? n2 : b[n2] || (b[n2] = n2.replace(k, "-$&").toLowerCase()), i2 = ";";
-      "number" != typeof r2 || o2.startsWith("--") || x.has(o2) || (i2 = "px;"), t2 = t2 + o2 + ":" + r2 + i2;
+      var o2 = "-" == n[0] ? n : b[n] || (b[n] = n.replace(k2, "-$&").toLowerCase()), i2 = ";";
+      "number" != typeof r2 || o2.startsWith("--") || x.has(o2) || (i2 = "px;"), t = t + o2 + ":" + r2 + i2;
     }
   }
-  return t2 || void 0;
+  return t || void 0;
 }
 function C() {
   this.__d = true;
 }
-function A(e2, t2) {
-  return { __v: e2, context: t2, props: e2.props, setState: C, forceUpdate: C, __d: true, __h: new Array(0) };
+function A(e, t) {
+  return { __v: e, context: t, props: e.props, setState: C, forceUpdate: C, __d: true, __h: new Array(0) };
 }
 var D;
 var P;
@@ -7515,55 +7515,55 @@ var z = Object.assign;
 var H = "";
 var N = "<!--$s-->";
 var q = "<!--/$s-->";
-function B(e2) {
-  return "string" == typeof e2 ? N + e2 + q : W(e2) ? (e2.unshift(N), e2.push(q), e2) : e2 && "function" == typeof e2.then ? e2.then(B) : N + e2 + q;
+function B(e) {
+  return "string" == typeof e ? N + e + q : W(e) ? (e.unshift(N), e.push(q), e) : e && "function" == typeof e.then ? e.then(B) : N + e + q;
 }
 function I(a2, u2, s3) {
-  var l2 = options[i];
-  options[i] = true, D = options.__b, P = options[r], $ = options.__r, U = options.unmount;
-  var f2 = h$1(Fragment, null);
+  var l3 = l[i];
+  l[i] = true, D = l.__b, P = l[r], $ = l.__r, U = l.unmount;
+  var f2 = k(S, null);
   f2[c] = [a2];
   try {
     var p2 = R(a2, u2 || F, false, void 0, f2, false, s3);
     return W(p2) ? p2.join(H) : p2;
-  } catch (e2) {
-    if (e2.then) throw new Error('Use "renderToStringAsync" for suspenseful rendering.');
-    throw e2;
+  } catch (e) {
+    if (e.then) throw new Error('Use "renderToStringAsync" for suspenseful rendering.');
+    throw e;
   } finally {
-    options[o] && options[o](a2, M), options[i] = l2, M.length = 0;
+    l[o] && l[o](a2, M), l[i] = l3, M.length = 0;
   }
 }
-function O(e2, t2) {
-  var n2, r2 = e2.type, o2 = true;
-  return e2[a] ? (o2 = false, (n2 = e2[a]).state = n2[s]) : n2 = new r2(e2.props, t2), e2[a] = n2, n2.__v = e2, n2.props = e2.props, n2.context = t2, v(n2), null == n2.state && (n2.state = F), null == n2[s] && (n2[s] = n2.state), r2.getDerivedStateFromProps ? n2.state = z({}, n2.state, r2.getDerivedStateFromProps(n2.props, n2.state)) : o2 && n2.componentWillMount ? (n2.componentWillMount(), n2.state = n2[s] !== n2.state ? n2[s] : n2.state) : !o2 && n2.componentWillUpdate && n2.componentWillUpdate(), $ && $(e2), n2.render(n2.props, n2.state, t2);
+function O(e, t) {
+  var n, r2 = e.type, o2 = true;
+  return e[a] ? (o2 = false, (n = e[a]).state = n[s]) : n = new r2(e.props, t), e[a] = n, n.__v = e, n.props = e.props, n.context = t, v(n), null == n.state && (n.state = F), null == n[s] && (n[s] = n.state), r2.getDerivedStateFromProps ? n.state = z({}, n.state, r2.getDerivedStateFromProps(n.props, n.state)) : o2 && n.componentWillMount ? (n.componentWillMount(), n.state = n[s] !== n.state ? n[s] : n.state) : !o2 && n.componentWillUpdate && n.componentWillUpdate(), $ && $(e), n.render(n.props, n.state, t);
 }
-function R(t2, r2, o2, i2, u2, _2, b2) {
-  if (null == t2 || true === t2 || false === t2 || t2 === H) return H;
-  var x2 = typeof t2;
-  if ("object" != x2) return "function" == x2 ? H : "string" == x2 ? g(t2) : t2 + H;
-  if (W(t2)) {
-    var k2, C2 = H;
-    u2[c] = t2;
-    for (var S = t2.length, L = 0; L < S; L++) {
-      var E = t2[L];
+function R(t, r2, o2, i2, u2, _2, b2) {
+  if (null == t || true === t || false === t || t === H) return H;
+  var x2 = typeof t;
+  if ("object" != x2) return "function" == x2 ? H : "string" == x2 ? g(t) : t + H;
+  if (W(t)) {
+    var k3, C2 = H;
+    u2[c] = t;
+    for (var S2 = t.length, L = 0; L < S2; L++) {
+      var E = t[L];
       if (null != E && "boolean" != typeof E) {
         var j, T = R(E, r2, o2, i2, u2, _2, b2);
-        "string" == typeof T ? C2 += T : (k2 || (k2 = new Array(S)), C2 && k2.push(C2), C2 = H, W(T) ? (j = k2).push.apply(j, T) : k2.push(T));
+        "string" == typeof T ? C2 += T : (k3 || (k3 = new Array(S2)), C2 && k3.push(C2), C2 = H, W(T) ? (j = k3).push.apply(j, T) : k3.push(T));
       }
     }
-    return k2 ? (C2 && k2.push(C2), k2) : C2;
+    return k3 ? (C2 && k3.push(C2), k3) : C2;
   }
-  if (void 0 !== t2.constructor) return H;
-  t2.__ = u2, D && D(t2);
-  var Z = t2.type, M2 = t2.props;
+  if (void 0 !== t.constructor) return H;
+  t.__ = u2, D && D(t);
+  var Z = t.type, M2 = t.props;
   if ("function" == typeof Z) {
     var N2, q2, I2, K2 = r2;
-    if (Z === Fragment) {
+    if (Z === S) {
       if ("tpl" in M2) {
         for (var G = H, Q = 0; Q < M2.tpl.length; Q++) if (G += M2.tpl[Q], M2.exprs && Q < M2.exprs.length) {
           var X = M2.exprs[Q];
           if (null == X) continue;
-          "object" != typeof X || void 0 !== X.constructor && !W(X) ? G += X : G += R(X, r2, o2, i2, t2, _2, b2);
+          "object" != typeof X || void 0 !== X.constructor && !W(X) ? G += X : G += R(X, r2, o2, i2, t, _2, b2);
         }
         return G;
       }
@@ -7576,51 +7576,51 @@ function R(t2, r2, o2, i2, u2, _2, b2) {
       }
       var ee = Z.prototype && "function" == typeof Z.prototype.render;
       if (ee) q2 = /**#__NOINLINE__**/
-      O(t2, K2), I2 = t2[a];
+      O(t, K2), I2 = t[a];
       else {
-        t2[a] = I2 = /**#__NOINLINE__**/
-        A(t2, K2);
+        t[a] = I2 = /**#__NOINLINE__**/
+        A(t, K2);
         for (var te = 0; y(I2) && te++ < 25; ) {
-          m(I2), $ && $(t2);
+          m(I2), $ && $(t);
           try {
             q2 = Z.call(I2, M2, K2);
-          } catch (e2) {
-            throw e2;
+          } catch (e) {
+            throw e;
           }
         }
         v(I2);
       }
-      if (null != I2.getChildContext && (r2 = z({}, r2, I2.getChildContext())), ee && options.errorBoundaries && (Z.getDerivedStateFromError || I2.componentDidCatch)) {
-        q2 = null != q2 && q2.type === Fragment && null == q2.key && null == q2.props.tpl ? q2.props.children : q2;
+      if (null != I2.getChildContext && (r2 = z({}, r2, I2.getChildContext())), ee && l.errorBoundaries && (Z.getDerivedStateFromError || I2.componentDidCatch)) {
+        q2 = null != q2 && q2.type === S && null == q2.key && null == q2.props.tpl ? q2.props.children : q2;
         try {
-          return R(q2, r2, o2, i2, t2, _2, false);
-        } catch (e2) {
-          return Z.getDerivedStateFromError && (I2[s] = Z.getDerivedStateFromError(e2)), I2.componentDidCatch && I2.componentDidCatch(e2, F), y(I2) ? (q2 = O(t2, r2), null != (I2 = t2[a]).getChildContext && (r2 = z({}, r2, I2.getChildContext())), R(q2 = null != q2 && q2.type === Fragment && null == q2.key && null == q2.props.tpl ? q2.props.children : q2, r2, o2, i2, t2, _2, b2)) : H;
+          return R(q2, r2, o2, i2, t, _2, false);
+        } catch (e) {
+          return Z.getDerivedStateFromError && (I2[s] = Z.getDerivedStateFromError(e)), I2.componentDidCatch && I2.componentDidCatch(e, F), y(I2) ? (q2 = O(t, r2), null != (I2 = t[a]).getChildContext && (r2 = z({}, r2, I2.getChildContext())), R(q2 = null != q2 && q2.type === S && null == q2.key && null == q2.props.tpl ? q2.props.children : q2, r2, o2, i2, t, _2, b2)) : H;
         } finally {
-          P && P(t2), U && U(t2);
+          P && P(t), U && U(t);
         }
       }
     }
-    q2 = null != q2 && q2.type === Fragment && null == q2.key && null == q2.props.tpl ? q2.props.children : q2;
+    q2 = null != q2 && q2.type === S && null == q2.key && null == q2.props.tpl ? q2.props.children : q2;
     try {
-      var ne = R(q2, r2, o2, i2, t2, _2, b2);
-      return P && P(t2), options.unmount && options.unmount(t2), t2._suspended ? B(ne) : ne;
-    } catch (n2) {
+      var ne = R(q2, r2, o2, i2, t, _2, b2);
+      return P && P(t), l.unmount && l.unmount(t), t._suspended ? B(ne) : ne;
+    } catch (n) {
       if (b2 && b2.onError) {
-        var re = (function e2(n3) {
-          return b2.onError(n3, t2, function(t3, n4) {
+        var re = (function e(n2) {
+          return b2.onError(n2, t, function(t2, n3) {
             try {
-              return R(t3, r2, o2, i2, n4, _2, b2);
-            } catch (t4) {
-              return e2(t4);
+              return R(t2, r2, o2, i2, n3, _2, b2);
+            } catch (t3) {
+              return e(t3);
             }
           });
-        })(n2);
+        })(n);
         if (void 0 !== re) return re;
-        var oe = options.__e;
-        return oe && oe(n2, t2), H;
+        var oe = l.__e;
+        return oe && oe(n, t), H;
       }
-      throw n2;
+      throw n;
     }
   }
   var ie, ae = "<" + Z, ce = H;
@@ -7678,22 +7678,22 @@ function R(t2, r2, o2, i2, u2, _2, b2) {
         default:
           if (f.test(ue)) ue = ue.replace(f, "$1:$2").toLowerCase();
           else {
-            if (l.test(ue)) continue;
+            if (l2.test(ue)) continue;
             "-" !== ue[4] && !d.has(ue) || null == se ? o2 ? h.test(ue) && (ue = "panose1" === ue ? "panose-1" : ue.replace(/([A-Z])/g, "-$1").toLowerCase()) : p.test(ue) && (ue = ue.toLowerCase()) : se += H;
           }
       }
       null != se && false !== se && (ae = true === se || se === H ? ae + " " + ue : ae + " " + ue + '="' + ("string" == typeof se ? g(se) : se + H) + '"');
     }
   }
-  if (l.test(Z)) throw new Error(Z + " is not a valid HTML tag name in " + ae + ">");
-  if (ce || ("string" == typeof ie ? ce = g(ie) : null != ie && false !== ie && true !== ie && (ce = R(ie, r2, "svg" === Z || "foreignObject" !== Z && o2, i2, t2, _2, b2))), P && P(t2), U && U(t2), !ce && V.has(Z)) return ae + "/>";
+  if (l2.test(Z)) throw new Error(Z + " is not a valid HTML tag name in " + ae + ">");
+  if (ce || ("string" == typeof ie ? ce = g(ie) : null != ie && false !== ie && true !== ie && (ce = R(ie, r2, "svg" === Z || "foreignObject" !== Z && o2, i2, t, _2, b2))), P && P(t), U && U(t), !ce && V.has(Z)) return ae + "/>";
   var le = "</" + Z + ">", fe = ae + ">";
   return W(ce) ? [fe].concat(ce, [le]) : "string" != typeof ce ? [fe, ce, le] : fe + ce + le;
 }
 var V = /* @__PURE__ */ new Set(["area", "base", "br", "col", "command", "embed", "hr", "img", "input", "keygen", "link", "meta", "param", "source", "track", "wbr"]);
 var K = I;
-function J(e2) {
-  return null !== e2 && "object" == typeof e2 && "function" == typeof e2.peek && "value" in e2;
+function J(e) {
+  return null !== e && "object" == typeof e && "function" == typeof e.peek && "value" in e;
 }
 
 // node_modules/devlop/lib/default.js
@@ -8987,7 +8987,7 @@ function parse2(value) {
 // node_modules/hastscript/lib/create-h.js
 function createH(schema, defaultTagName, caseSensitive) {
   const adjust = caseSensitive ? createAdjustMap(caseSensitive) : void 0;
-  function h4(selector, properties, ...children) {
+  function h3(selector, properties, ...children) {
     let node;
     if (selector === null || selector === void 0) {
       node = { type: "root", children: [] };
@@ -9018,7 +9018,7 @@ function createH(schema, defaultTagName, caseSensitive) {
     }
     return node;
   }
-  return h4;
+  return h3;
 }
 function isChild(value) {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
@@ -17398,6 +17398,470 @@ VFileMessage.prototype.place = void 0;
 VFileMessage.prototype.ruleId = void 0;
 VFileMessage.prototype.source = void 0;
 
+// node_modules/vfile/lib/minurl.shared.js
+function isUrl(fileUrlOrPath) {
+  return Boolean(
+    fileUrlOrPath !== null && typeof fileUrlOrPath === "object" && "href" in fileUrlOrPath && fileUrlOrPath.href && "protocol" in fileUrlOrPath && fileUrlOrPath.protocol && // @ts-expect-error: indexing is fine.
+    fileUrlOrPath.auth === void 0
+  );
+}
+
+// node_modules/vfile/lib/index.js
+var order = (
+  /** @type {const} */
+  [
+    "history",
+    "path",
+    "basename",
+    "stem",
+    "extname",
+    "dirname"
+  ]
+);
+var VFile = class {
+  /**
+   * Create a new virtual file.
+   *
+   * `options` is treated as:
+   *
+   * *   `string` or `Uint8Array` — `{value: options}`
+   * *   `URL` — `{path: options}`
+   * *   `VFile` — shallow copies its data over to the new file
+   * *   `object` — all fields are shallow copied over to the new file
+   *
+   * Path related fields are set in the following order (least specific to
+   * most specific): `history`, `path`, `basename`, `stem`, `extname`,
+   * `dirname`.
+   *
+   * You cannot set `dirname` or `extname` without setting either `history`,
+   * `path`, `basename`, or `stem` too.
+   *
+   * @param {Compatible | null | undefined} [value]
+   *   File value.
+   * @returns
+   *   New instance.
+   */
+  constructor(value) {
+    let options;
+    if (!value) {
+      options = {};
+    } else if (isUrl(value)) {
+      options = { path: value };
+    } else if (typeof value === "string" || isUint8Array(value)) {
+      options = { value };
+    } else {
+      options = value;
+    }
+    this.cwd = "cwd" in options ? "" : default3.cwd();
+    this.data = {};
+    this.history = [];
+    this.messages = [];
+    this.value;
+    this.map;
+    this.result;
+    this.stored;
+    let index2 = -1;
+    while (++index2 < order.length) {
+      const field2 = order[index2];
+      if (field2 in options && options[field2] !== void 0 && options[field2] !== null) {
+        this[field2] = field2 === "history" ? [...options[field2]] : options[field2];
+      }
+    }
+    let field;
+    for (field in options) {
+      if (!order.includes(field)) {
+        this[field] = options[field];
+      }
+    }
+  }
+  /**
+   * Get the basename (including extname) (example: `'index.min.js'`).
+   *
+   * @returns {string | undefined}
+   *   Basename.
+   */
+  get basename() {
+    return typeof this.path === "string" ? default2.basename(this.path) : void 0;
+  }
+  /**
+   * Set basename (including extname) (`'index.min.js'`).
+   *
+   * Cannot contain path separators (`'/'` on unix, macOS, and browsers, `'\'`
+   * on windows).
+   * Cannot be nullified (use `file.path = file.dirname` instead).
+   *
+   * @param {string} basename
+   *   Basename.
+   * @returns {undefined}
+   *   Nothing.
+   */
+  set basename(basename) {
+    assertNonEmpty(basename, "basename");
+    assertPart(basename, "basename");
+    this.path = default2.join(this.dirname || "", basename);
+  }
+  /**
+   * Get the parent path (example: `'~'`).
+   *
+   * @returns {string | undefined}
+   *   Dirname.
+   */
+  get dirname() {
+    return typeof this.path === "string" ? default2.dirname(this.path) : void 0;
+  }
+  /**
+   * Set the parent path (example: `'~'`).
+   *
+   * Cannot be set if there’s no `path` yet.
+   *
+   * @param {string | undefined} dirname
+   *   Dirname.
+   * @returns {undefined}
+   *   Nothing.
+   */
+  set dirname(dirname) {
+    assertPath(this.basename, "dirname");
+    this.path = default2.join(dirname || "", this.basename);
+  }
+  /**
+   * Get the extname (including dot) (example: `'.js'`).
+   *
+   * @returns {string | undefined}
+   *   Extname.
+   */
+  get extname() {
+    return typeof this.path === "string" ? default2.extname(this.path) : void 0;
+  }
+  /**
+   * Set the extname (including dot) (example: `'.js'`).
+   *
+   * Cannot contain path separators (`'/'` on unix, macOS, and browsers, `'\'`
+   * on windows).
+   * Cannot be set if there’s no `path` yet.
+   *
+   * @param {string | undefined} extname
+   *   Extname.
+   * @returns {undefined}
+   *   Nothing.
+   */
+  set extname(extname) {
+    assertPart(extname, "extname");
+    assertPath(this.dirname, "extname");
+    if (extname) {
+      if (extname.codePointAt(0) !== 46) {
+        throw new Error("`extname` must start with `.`");
+      }
+      if (extname.includes(".", 1)) {
+        throw new Error("`extname` cannot contain multiple dots");
+      }
+    }
+    this.path = default2.join(this.dirname, this.stem + (extname || ""));
+  }
+  /**
+   * Get the full path (example: `'~/index.min.js'`).
+   *
+   * @returns {string}
+   *   Path.
+   */
+  get path() {
+    return this.history[this.history.length - 1];
+  }
+  /**
+   * Set the full path (example: `'~/index.min.js'`).
+   *
+   * Cannot be nullified.
+   * You can set a file URL (a `URL` object with a `file:` protocol) which will
+   * be turned into a path with `url.fileURLToPath`.
+   *
+   * @param {URL | string} path
+   *   Path.
+   * @returns {undefined}
+   *   Nothing.
+   */
+  set path(path) {
+    if (isUrl(path)) {
+      path = fileURLToPath(path);
+    }
+    assertNonEmpty(path, "path");
+    if (this.path !== path) {
+      this.history.push(path);
+    }
+  }
+  /**
+   * Get the stem (basename w/o extname) (example: `'index.min'`).
+   *
+   * @returns {string | undefined}
+   *   Stem.
+   */
+  get stem() {
+    return typeof this.path === "string" ? default2.basename(this.path, this.extname) : void 0;
+  }
+  /**
+   * Set the stem (basename w/o extname) (example: `'index.min'`).
+   *
+   * Cannot contain path separators (`'/'` on unix, macOS, and browsers, `'\'`
+   * on windows).
+   * Cannot be nullified (use `file.path = file.dirname` instead).
+   *
+   * @param {string} stem
+   *   Stem.
+   * @returns {undefined}
+   *   Nothing.
+   */
+  set stem(stem) {
+    assertNonEmpty(stem, "stem");
+    assertPart(stem, "stem");
+    this.path = default2.join(this.dirname || "", stem + (this.extname || ""));
+  }
+  // Normal prototypal methods.
+  /**
+   * Create a fatal message for `reason` associated with the file.
+   *
+   * The `fatal` field of the message is set to `true` (error; file not usable)
+   * and the `file` field is set to the current file path.
+   * The message is added to the `messages` field on `file`.
+   *
+   * > 🪦 **Note**: also has obsolete signatures.
+   *
+   * @overload
+   * @param {string} reason
+   * @param {MessageOptions | null | undefined} [options]
+   * @returns {never}
+   *
+   * @overload
+   * @param {string} reason
+   * @param {Node | NodeLike | null | undefined} parent
+   * @param {string | null | undefined} [origin]
+   * @returns {never}
+   *
+   * @overload
+   * @param {string} reason
+   * @param {Point | Position | null | undefined} place
+   * @param {string | null | undefined} [origin]
+   * @returns {never}
+   *
+   * @overload
+   * @param {string} reason
+   * @param {string | null | undefined} [origin]
+   * @returns {never}
+   *
+   * @overload
+   * @param {Error | VFileMessage} cause
+   * @param {Node | NodeLike | null | undefined} parent
+   * @param {string | null | undefined} [origin]
+   * @returns {never}
+   *
+   * @overload
+   * @param {Error | VFileMessage} cause
+   * @param {Point | Position | null | undefined} place
+   * @param {string | null | undefined} [origin]
+   * @returns {never}
+   *
+   * @overload
+   * @param {Error | VFileMessage} cause
+   * @param {string | null | undefined} [origin]
+   * @returns {never}
+   *
+   * @param {Error | VFileMessage | string} causeOrReason
+   *   Reason for message, should use markdown.
+   * @param {Node | NodeLike | MessageOptions | Point | Position | string | null | undefined} [optionsOrParentOrPlace]
+   *   Configuration (optional).
+   * @param {string | null | undefined} [origin]
+   *   Place in code where the message originates (example:
+   *   `'my-package:my-rule'` or `'my-rule'`).
+   * @returns {never}
+   *   Never.
+   * @throws {VFileMessage}
+   *   Message.
+   */
+  fail(causeOrReason, optionsOrParentOrPlace, origin) {
+    const message = this.message(causeOrReason, optionsOrParentOrPlace, origin);
+    message.fatal = true;
+    throw message;
+  }
+  /**
+   * Create an info message for `reason` associated with the file.
+   *
+   * The `fatal` field of the message is set to `undefined` (info; change
+   * likely not needed) and the `file` field is set to the current file path.
+   * The message is added to the `messages` field on `file`.
+   *
+   * > 🪦 **Note**: also has obsolete signatures.
+   *
+   * @overload
+   * @param {string} reason
+   * @param {MessageOptions | null | undefined} [options]
+   * @returns {VFileMessage}
+   *
+   * @overload
+   * @param {string} reason
+   * @param {Node | NodeLike | null | undefined} parent
+   * @param {string | null | undefined} [origin]
+   * @returns {VFileMessage}
+   *
+   * @overload
+   * @param {string} reason
+   * @param {Point | Position | null | undefined} place
+   * @param {string | null | undefined} [origin]
+   * @returns {VFileMessage}
+   *
+   * @overload
+   * @param {string} reason
+   * @param {string | null | undefined} [origin]
+   * @returns {VFileMessage}
+   *
+   * @overload
+   * @param {Error | VFileMessage} cause
+   * @param {Node | NodeLike | null | undefined} parent
+   * @param {string | null | undefined} [origin]
+   * @returns {VFileMessage}
+   *
+   * @overload
+   * @param {Error | VFileMessage} cause
+   * @param {Point | Position | null | undefined} place
+   * @param {string | null | undefined} [origin]
+   * @returns {VFileMessage}
+   *
+   * @overload
+   * @param {Error | VFileMessage} cause
+   * @param {string | null | undefined} [origin]
+   * @returns {VFileMessage}
+   *
+   * @param {Error | VFileMessage | string} causeOrReason
+   *   Reason for message, should use markdown.
+   * @param {Node | NodeLike | MessageOptions | Point | Position | string | null | undefined} [optionsOrParentOrPlace]
+   *   Configuration (optional).
+   * @param {string | null | undefined} [origin]
+   *   Place in code where the message originates (example:
+   *   `'my-package:my-rule'` or `'my-rule'`).
+   * @returns {VFileMessage}
+   *   Message.
+   */
+  info(causeOrReason, optionsOrParentOrPlace, origin) {
+    const message = this.message(causeOrReason, optionsOrParentOrPlace, origin);
+    message.fatal = void 0;
+    return message;
+  }
+  /**
+   * Create a message for `reason` associated with the file.
+   *
+   * The `fatal` field of the message is set to `false` (warning; change may be
+   * needed) and the `file` field is set to the current file path.
+   * The message is added to the `messages` field on `file`.
+   *
+   * > 🪦 **Note**: also has obsolete signatures.
+   *
+   * @overload
+   * @param {string} reason
+   * @param {MessageOptions | null | undefined} [options]
+   * @returns {VFileMessage}
+   *
+   * @overload
+   * @param {string} reason
+   * @param {Node | NodeLike | null | undefined} parent
+   * @param {string | null | undefined} [origin]
+   * @returns {VFileMessage}
+   *
+   * @overload
+   * @param {string} reason
+   * @param {Point | Position | null | undefined} place
+   * @param {string | null | undefined} [origin]
+   * @returns {VFileMessage}
+   *
+   * @overload
+   * @param {string} reason
+   * @param {string | null | undefined} [origin]
+   * @returns {VFileMessage}
+   *
+   * @overload
+   * @param {Error | VFileMessage} cause
+   * @param {Node | NodeLike | null | undefined} parent
+   * @param {string | null | undefined} [origin]
+   * @returns {VFileMessage}
+   *
+   * @overload
+   * @param {Error | VFileMessage} cause
+   * @param {Point | Position | null | undefined} place
+   * @param {string | null | undefined} [origin]
+   * @returns {VFileMessage}
+   *
+   * @overload
+   * @param {Error | VFileMessage} cause
+   * @param {string | null | undefined} [origin]
+   * @returns {VFileMessage}
+   *
+   * @param {Error | VFileMessage | string} causeOrReason
+   *   Reason for message, should use markdown.
+   * @param {Node | NodeLike | MessageOptions | Point | Position | string | null | undefined} [optionsOrParentOrPlace]
+   *   Configuration (optional).
+   * @param {string | null | undefined} [origin]
+   *   Place in code where the message originates (example:
+   *   `'my-package:my-rule'` or `'my-rule'`).
+   * @returns {VFileMessage}
+   *   Message.
+   */
+  message(causeOrReason, optionsOrParentOrPlace, origin) {
+    const message = new VFileMessage(
+      // @ts-expect-error: the overloads are fine.
+      causeOrReason,
+      optionsOrParentOrPlace,
+      origin
+    );
+    if (this.path) {
+      message.name = this.path + ":" + message.name;
+      message.file = this.path;
+    }
+    message.fatal = false;
+    this.messages.push(message);
+    return message;
+  }
+  /**
+   * Serialize the file.
+   *
+   * > **Note**: which encodings are supported depends on the engine.
+   * > For info on Node.js, see:
+   * > <https://nodejs.org/api/util.html#whatwg-supported-encodings>.
+   *
+   * @param {string | null | undefined} [encoding='utf8']
+   *   Character encoding to understand `value` as when it’s a `Uint8Array`
+   *   (default: `'utf-8'`).
+   * @returns {string}
+   *   Serialized file.
+   */
+  toString(encoding) {
+    if (this.value === void 0) {
+      return "";
+    }
+    if (typeof this.value === "string") {
+      return this.value;
+    }
+    const decoder = new TextDecoder(encoding || void 0);
+    return decoder.decode(this.value);
+  }
+};
+function assertPart(part, name) {
+  if (part && part.includes(default2.sep)) {
+    throw new Error(
+      "`" + name + "` cannot be a path: did not expect `" + default2.sep + "`"
+    );
+  }
+}
+function assertNonEmpty(part, name) {
+  if (!part) {
+    throw new Error("`" + name + "` cannot be empty");
+  }
+}
+function assertPath(path, name) {
+  if (!path) {
+    throw new Error("Setting `" + name + "` requires `path` to be set too");
+  }
+}
+function isUint8Array(value) {
+  return Boolean(
+    value && typeof value === "object" && "byteLength" in value && "byteOffset" in value
+  );
+}
+
 // node_modules/hast-util-from-html/lib/errors.js
 var errors = {
   /** @type {ErrorInfo} */
@@ -17924,7 +18388,7 @@ var BasesPage = (opts) => ({
             allFileData,
             void 0,
             basesSelfContext
-          ).entries.map((e2) => e2.slug),
+          ).entries.map((e) => e.slug),
           basesData,
           basesOptions: opts,
           basesSelfContext
@@ -18023,7 +18487,7 @@ function renderBasesInline(basesData, allFiles, locale, localeStrings, opts, slu
     if (reg?.css) viewCssChunks.push(reg.css);
   }
   const selectorHtml = K(
-    h$1(Fragment, null, ViewSelector({ views, activeIndex: initialIndex, locale }))
+    k(S, null, ViewSelector({ views, activeIndex: initialIndex, locale }))
   );
   const viewPanels = views.map((view, index2) => {
     const { entries, total } = resolveBasesEntries(basesData, allFiles, view, selfContext);
@@ -18035,8 +18499,8 @@ function renderBasesInline(basesData, allFiles, locale, localeStrings, opts, slu
       innerHtml = `<div class="bases-empty">${localeStrings.noData}</div>`;
     } else if (Renderer) {
       innerHtml = K(
-        h$1(
-          Fragment,
+        k(
+          S,
           null,
           Renderer({
             entries,
