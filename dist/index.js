@@ -1,9 +1,10 @@
 import { createRequire } from 'module';
-import { BasesBody_default, slugifyFilePath, resolveBasesEntries, registerBuiltinViews, i18n, k, S, ViewSelector, l } from './chunk-XCYIFVJU.js';
-export { BasesBody_default as BasesBody, slugifyPath, transformLink } from './chunk-XCYIFVJU.js';
+import { BasesBody_default, resolveBasesEntries, registerBuiltinViews, i18n, ViewSelector } from './chunk-NSX34UW3.js';
+export { BasesBody_default as BasesBody } from './chunk-NSX34UW3.js';
 import { registerCustomViews, viewRegistry } from './chunk-2AUMER56.js';
 export { registerCustomViews, viewRegistry } from './chunk-2AUMER56.js';
-export { compile, evaluate, evaluateFilter, resolvePropertyValue } from './chunk-GIL63DBV.js';
+import { slugifyFilePath, k, S, l } from './chunk-4A627OLJ.js';
+export { compile, evaluate, evaluateFilter, resolvePropertyValue, slugifyPath, transformLink } from './chunk-4A627OLJ.js';
 import { __commonJS, __require, __export, __toESM } from './chunk-TDUJOYTU.js';
 import default2, { join } from 'path';
 import default3 from 'process';
@@ -18467,7 +18468,8 @@ function createBasesCodeblockTransform(opts) {
 function renderBasesInline(basesData, allFiles, locale, localeStrings, opts, slug, allSlugs, linkResolution, viewName, selfContext) {
   let views = basesData.views ?? [];
   if (viewName) {
-    views = views.filter((v2) => v2.name === viewName);
+    const viewNameLower = viewName.toLowerCase();
+    views = views.filter((v2) => v2.name?.toLowerCase() === viewNameLower);
     if (views.length === 0) {
       return `<div class="bases-empty">View &quot;${viewName}&quot; not found</div>`;
     }
