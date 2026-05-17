@@ -1,4 +1,6 @@
 import type { EvalContext } from "./interpreter";
+import { slugifyFilePath, slugifyPath } from "@quartz-community/utils";
+import type { FilePath } from "@quartz-community/utils";
 
 export type GlobalFunction = (args: unknown[], context: EvalContext) => unknown;
 export type MethodFunction = (target: unknown, args: unknown[], context: EvalContext) => unknown;
@@ -96,14 +98,34 @@ function resolveSelfName(value: unknown): string | null {
   return null;
 }
 
-function listContainsName(list: unknown[], name: string): boolean {
+function resolveSelfPath(value: unknown): string | null {
+  if (!isRecord(value)) return null;
+  if (isRecord(value.file) && typeof (value.file as Record<string, unknown>).path === "string") {
+    return (value.file as Record<string, unknown>).path as string;
+  }
+  if (typeof value.path === "string") {
+    return value.path as string;
+  }
+  return null;
+}
+
+function listContainsName(list: unknown[], name: string, selfPath?: string | null): boolean {
+  const slugName = slugifyPath(name);
+  const selfSlug = selfPath ? slugifyFilePath(selfPath as FilePath) : null;
   return list.some((item) => {
     if (typeof item !== "string") return false;
     const match = item.match(/^\[\[([^\]|]+)(?:\|[^\]]+)?\]\]$/);
     if (match?.[1]) {
       return match[1] === name || match[1].endsWith(`/${name}`);
     }
-    return item === name;
+    if (item === name) return true;
+    if (item === slugName || item.endsWith(`/${slugName}`)) return true;
+    if (
+      selfSlug &&
+      (item === selfSlug || selfSlug.endsWith(`/${item}`) || item.endsWith(`/${selfSlug}`))
+    )
+      return true;
+    return false;
   });
 }
 
@@ -218,37 +240,6 @@ function parseDate(value: unknown): Date | undefined {
   return undefined;
 }
 
-function resolveContextPath(path: string, context: EvalContext): unknown {
-  const trimmed = path.trim();
-  if (!trimmed) return undefined;
-  if (trimmed.startsWith("note.")) {
-    return getNestedValue(context.note, trimmed.slice(5).split("."));
-  }
-  if (trimmed.startsWith("file.")) {
-    return getNestedValue(context.file, trimmed.slice(5).split("."));
-  }
-  if (trimmed.startsWith("formula.")) {
-    return getNestedValue(context.formula, trimmed.slice(8).split("."));
-  }
-  return getNestedValue(context.note, trimmed.split("."));
-}
-
-function getNestedValue(target: unknown, path: string[]): unknown {
-  let current: unknown = target;
-  for (const part of path) {
-    if (!part) continue;
-    if (Array.isArray(current)) {
-      const index = Number(part);
-      if (Number.isNaN(index)) return undefined;
-      current = current[index];
-      continue;
-    }
-    if (!isRecord(current)) return undefined;
-    current = current[part];
-  }
-  return current;
-}
-
 function buildFileValue(path: string): EvalContext["file"] {
   const normalized = path.trim();
   const lastSlash = normalized.lastIndexOf("/");
@@ -287,7 +278,7 @@ registerGlobalFunction("contains", ([haystack, needle]) => {
   if (Array.isArray(haystack)) {
     if (haystack.includes(needle)) return true;
     const name = resolveSelfName(needle);
-    return name ? listContainsName(haystack, name) : false;
+    return name ? listContainsName(haystack, name, resolveSelfPath(needle)) : false;
   }
   if (typeof haystack === "string") return haystack.includes(toStringValue(needle));
   return false;
@@ -400,8 +391,16 @@ registerMethodFunction("file", "inFolder", (target, [folder]) => {
 registerMethodFunction("file", "hasProperty", (_target, [prop], context) => {
   const value = toStringValue(prop);
   if (!value) return false;
-  const resolved = resolveContextPath(value, context);
-  return resolved !== undefined && resolved !== null;
+  // Obsidian treats hasProperty as "does the key exist in frontmatter?" regardless
+  // of whether the value is null/undefined/falsy.
+  const parts = value.split(".");
+  let target: unknown = context.note;
+  for (const part of parts) {
+    if (!isRecord(target)) return false;
+    if (!Object.hasOwn(target, part)) return false;
+    target = target[part];
+  }
+  return true;
 });
 
 registerMethodFunction("string", "contains", (target, [needle]) => {
@@ -704,7 +703,7 @@ registerMethodFunction("list", "contains", (target, [needle]) => {
   if (!Array.isArray(target)) return false;
   if (target.includes(needle)) return true;
   const name = resolveSelfName(needle);
-  return name ? listContainsName(target, name) : false;
+  return name ? listContainsName(target, name, resolveSelfPath(needle)) : false;
 });
 
 registerMethodFunction("list", "containsAll", (target, args) => {

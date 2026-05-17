@@ -199,7 +199,8 @@ function renderBasesInline(
   let views = basesData.views ?? [];
 
   if (viewName) {
-    views = views.filter((v) => v.name === viewName);
+    const viewNameLower = viewName.toLowerCase();
+    views = views.filter((v) => v.name?.toLowerCase() === viewNameLower);
     if (views.length === 0) {
       return `<div class="bases-empty">View &quot;${viewName}&quot; not found</div>`;
     }
