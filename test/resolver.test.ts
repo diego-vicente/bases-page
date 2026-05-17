@@ -503,4 +503,64 @@ describe("resolveBasesEntries", () => {
     expect(inheritances).toHaveLength(1);
     expect(inheritances[0]?.basename).toBe("Apple");
   });
+
+  it("file.links.contains(this) matches slug-format links against self context", () => {
+    const files = [
+      makeFile({
+        slug: "notes/alpha",
+        filePath: "notes/alpha.md",
+        frontmatter: { title: "Alpha" },
+        links: ["bases/my-base"],
+      }),
+      makeFile({
+        slug: "notes/bravo",
+        filePath: "notes/bravo.md",
+        frontmatter: { title: "Bravo" },
+        links: ["notes/alpha"],
+      }),
+    ];
+    const basesData: BasesData = {
+      filters: "file.links.contains(this)",
+    };
+    const selfContext = {
+      file: {
+        name: "My Base",
+        path: "bases/My Base.base",
+        folder: "bases",
+        ext: "base",
+      },
+    };
+    const result = resolveBasesEntries(basesData, files, undefined, selfContext);
+    expect(result.entries).toHaveLength(1);
+    expect(result.entries[0]?.slug).toBe("notes/alpha");
+  });
+
+  it("hasProperty filter includes files with null/falsy property values", () => {
+    const files = [
+      makeFile({
+        slug: "notes/with-null",
+        filePath: "notes/with-null.md",
+        frontmatter: { title: "With Null", status: null },
+      }),
+      makeFile({
+        slug: "notes/with-false",
+        filePath: "notes/with-false.md",
+        frontmatter: { title: "With False", status: false },
+      }),
+      makeFile({
+        slug: "notes/without",
+        filePath: "notes/without.md",
+        frontmatter: { title: "Without" },
+      }),
+    ];
+    const basesData: BasesData = {
+      filters: 'file.hasProperty("status")',
+    };
+    const result = resolveBasesEntries(basesData, files);
+    expect(result.entries).toHaveLength(2);
+    expect(result.entries.map((e) => e.slug).sort()).toEqual([
+      "notes/with-false",
+      "notes/with-null",
+    ]);
+  });
 });

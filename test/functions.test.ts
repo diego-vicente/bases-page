@@ -315,6 +315,37 @@ describe("list functions and methods", () => {
     expect(evaluate("contains(list, this)", ctx)).toBe(true);
   });
 
+  it("matches self-context against slug-format links (Quartz crawl-links compat)", () => {
+    const self = {
+      file: {
+        name: "Paul Chambers",
+        path: "artists/Paul Chambers.md",
+        folder: "artists",
+        ext: "md",
+      },
+    };
+    const slugCtx = {
+      ...context,
+      self,
+      note: { ...context.note, list: ["artists/paul-chambers"] },
+    };
+    expect(evaluate("list.contains(this)", slugCtx)).toBe(true);
+
+    const shortSlugCtx = {
+      ...context,
+      self,
+      note: { ...context.note, list: ["paul-chambers"] },
+    };
+    expect(evaluate("list.contains(this)", shortSlugCtx)).toBe(true);
+
+    const globalCtx = {
+      ...context,
+      self,
+      note: { ...context.note, list: ["artists/paul-chambers"] },
+    };
+    expect(evaluate("contains(list, this)", globalCtx)).toBe(true);
+  });
+
   it("resolves self names from wrapper and file values", () => {
     const wrapperCtx = {
       ...context,
@@ -428,6 +459,18 @@ describe("duration and file helpers", () => {
     expect(evaluate('file.hasLink("other-note")', context)).toBe(true);
     expect(evaluate('file.inFolder("notes/archive")', context)).toBe(false);
     expect(evaluate('file.hasProperty("status")', context)).toBe(true);
+  });
+
+  it("hasProperty returns true for null/falsy values (Obsidian compat)", () => {
+    const ctx = {
+      ...context,
+      note: { ...context.note, nullProp: null, falseProp: false, zeroProp: 0, emptyProp: "" },
+    };
+    expect(evaluate('file.hasProperty("nullProp")', ctx)).toBe(true);
+    expect(evaluate('file.hasProperty("falseProp")', ctx)).toBe(true);
+    expect(evaluate('file.hasProperty("zeroProp")', ctx)).toBe(true);
+    expect(evaluate('file.hasProperty("emptyProp")', ctx)).toBe(true);
+    expect(evaluate('file.hasProperty("nonExistent")', ctx)).toBe(false);
   });
 
   it("supports file.asLink()", () => {
