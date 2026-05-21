@@ -219,7 +219,7 @@ function renderTextWithLinks(text, ctx) {
     segments.push({
       start: match.index ?? 0,
       end: (match.index ?? 0) + match[0].length,
-      node: /* @__PURE__ */ u("a", { href, class: "internal", children: display })
+      node: /* @__PURE__ */ u("a", { href, class: "internal internal-link", children: display })
     });
   }
   for (const match of text.matchAll(MDLINK_RE)) {
@@ -238,7 +238,7 @@ function renderTextWithLinks(text, ctx) {
         "a",
         {
           href: resolvedHref,
-          class: isExternal ? "external" : "internal",
+          class: isExternal ? "external external-link" : "internal internal-link",
           ...isExternal ? { target: "_blank", rel: "noopener noreferrer" } : {},
           children: display || href
         }
@@ -253,7 +253,7 @@ function renderTextWithLinks(text, ctx) {
     segments.push({
       start,
       end,
-      node: /* @__PURE__ */ u("a", { href: match[0], class: "external", target: "_blank", rel: "noopener noreferrer", children: match[0] })
+      node: /* @__PURE__ */ u("a", { href: match[0], class: "external external-link", target: "_blank", rel: "noopener noreferrer", children: match[0] })
     });
   }
   if (segments.length === 0) return [text];
@@ -316,7 +316,7 @@ function renderCellValue(value, ctx) {
           allSlugs: ctx.allSlugs
         }
       );
-      return /* @__PURE__ */ u("a", { href, class: "internal", children: value.basename });
+      return /* @__PURE__ */ u("a", { href, class: "internal internal-link", children: value.basename });
     }
     return /* @__PURE__ */ u("code", { children: JSON.stringify(value) });
   }
@@ -438,7 +438,7 @@ var BoardView = ({
             "a",
             {
               href: transformLink(slug, entry.slug, transformOpts),
-              class: "internal",
+              class: "internal internal-link",
               "data-slug": entry.slug,
               children: entry.title
             }
@@ -519,7 +519,7 @@ var CardsView = ({
       const { src: imageSrc, isColor } = resolveImageSrc(rawImage, imageOpts);
       const imageAspect = typeof aspectRatio === "number" && aspectRatio > 0 ? { aspectRatio: String(aspectRatio) } : void 0;
       const href = transformLink(slug, entry.slug, transformOpts);
-      return /* @__PURE__ */ u("a", { href, class: "internal bases-card", "data-slug": entry.slug, children: [
+      return /* @__PURE__ */ u("a", { href, class: "internal internal-link bases-card", "data-slug": entry.slug, children: [
         imageSrc && !isColor && /* @__PURE__ */ u("div", { class: "bases-card-image", style: imageAspect, children: /* @__PURE__ */ u(
           "img",
           {
@@ -602,7 +602,7 @@ var GalleryView = ({
           "a",
           {
             href: transformLink(slug, entry.slug, transformOpts),
-            class: "internal",
+            class: "internal internal-link",
             "data-slug": entry.slug,
             children: entry.title
           }
@@ -651,7 +651,7 @@ var ListView = ({
         "a",
         {
           href: transformLink(slug, entry.slug, transformOpts),
-          class: "internal",
+          class: "internal internal-link",
           "data-slug": entry.slug,
           children: entry.title
         }
@@ -752,7 +752,7 @@ function renderRow(entry, columns, view, slug, allSlugs, linkResolution) {
       "a",
       {
         href: transformLink(slug, entry.slug, transformOpts),
-        class: "internal",
+        class: "internal internal-link",
         "data-slug": entry.slug,
         children: display || entry.title
       }
@@ -925,5 +925,5 @@ var BasesBody_default = ((opts) => {
 });
 
 export { BasesBody_default, ViewSelector, i18n, registerBuiltinViews, resolveBasesEntries };
-//# sourceMappingURL=chunk-NSX34UW3.js.map
-//# sourceMappingURL=chunk-NSX34UW3.js.map
+//# sourceMappingURL=chunk-IFQU7AWQ.js.map
+//# sourceMappingURL=chunk-IFQU7AWQ.js.map
