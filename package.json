@@ -114,7 +114,23 @@
     "dependencies": [],
     "defaultOrder": 50,
     "defaultEnabled": true,
-    "defaultOptions": {}
+    "defaultOptions": {
+      "defaultViewType": "table",
+      "linkResolution": "shortest"
+    },
+    "optionSchema": {
+      "defaultViewType": {
+        "type": "string"
+      },
+      "linkResolution": {
+        "type": "enum",
+        "values": [
+          "absolute",
+          "relative",
+          "shortest"
+        ]
+      }
+    }
   },
   "engines": {
     "node": ">=22",
