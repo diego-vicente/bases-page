@@ -116,8 +116,8 @@ const TableView: ViewRenderer = ({
                 : undefined;
               return (
                 <th data-column={column} data-sortable="true" style={style}>
-                  {getColumnLabel(column, basesData)}
-                  <span class="bases-sort-indicator" aria-hidden="true" />
+                  <span class="bases-table-header">{getColumnLabel(column, basesData)}</span>
+                  <span class="bases-table-header-sort" aria-hidden="true" />
                 </th>
               );
             })}

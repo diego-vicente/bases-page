@@ -78,10 +78,6 @@
     cursor: pointer;
   }
 
-  tbody tr:nth-child(even) {
-    background: var(--lightgray);
-  }
-
   td .bases-empty {
     padding: 0;
     border: 0;
@@ -103,9 +99,15 @@
     flex-wrap: wrap;
     gap: 4px;
   }
+
+  td input[type=checkbox] {
+    margin-inline: 0;
+  }
 }
 
-.bases-sort-indicator {
+.bases-table-header-sort {
+  position: absolute;
+  right: 8px;
   display: inline-block;
   width: 8px;
   height: 8px;
@@ -114,13 +116,13 @@
   border-bottom: 2px solid transparent;
 }
 
-th.is-sorted-asc .bases-sort-indicator {
+th.is-sorted-asc .bases-table-header-sort {
   border-right-color: var(--darkgray);
   border-bottom-color: var(--darkgray);
   transform: rotate(-45deg);
 }
 
-th.is-sorted-desc .bases-sort-indicator {
+th.is-sorted-desc .bases-table-header-sort {
   border-right-color: var(--darkgray);
   border-bottom-color: var(--darkgray);
   transform: rotate(135deg);
