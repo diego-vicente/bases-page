@@ -23,7 +23,6 @@ function groupEntries(
   entries: BasesEntry[],
   groupProperty: string | undefined,
   emptyLabel: string,
-  groupDirection?: "ASC" | "DESC",
 ): Map<string, BasesEntry[]> | null {
   if (!groupProperty) return null;
   const groups = new Map<string, BasesEntry[]>();
@@ -38,19 +37,7 @@ function groupEntries(
       groups.set(key, [entry]);
     }
   }
-  if (groups.size === 0) return null;
-  if (!groupDirection) return groups;
-  const sortedKeys = Array.from(groups.keys()).sort((a, b) => {
-    if (a === emptyLabel) return 1;
-    if (b === emptyLabel) return -1;
-    const cmp = a.localeCompare(b);
-    return groupDirection === "DESC" ? -cmp : cmp;
-  });
-  const sorted = new Map<string, BasesEntry[]>();
-  for (const key of sortedKeys) {
-    sorted.set(key, groups.get(key)!);
-  }
-  return sorted;
+  return groups.size > 0 ? groups : null;
 }
 
 function renderRow(
@@ -109,12 +96,7 @@ const TableView: ViewRenderer = ({
   const localeStrings = i18n(locale).components.bases;
   const groupProperty = view.groupBy?.property;
   const groupPropertyLabel = groupProperty ? getColumnLabel(groupProperty, basesData) : "";
-  const groups = groupEntries(
-    entries,
-    groupProperty,
-    localeStrings.uncategorized,
-    view.groupBy?.direction,
-  );
+  const groups = groupEntries(entries, groupProperty, localeStrings.uncategorized);
 
   return (
     <div class="bases-table-wrapper">

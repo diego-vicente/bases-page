@@ -31,41 +31,24 @@ const BoardView: ViewRenderer = ({
   const localeStrings = i18n(locale).components.bases;
   const groupProperty = view.groupBy?.property ?? view.boardProperty;
   const columns = getColumns(view, basesData, entries).filter((column) => column !== groupProperty);
-  const unsortedGroups = new Map<string, { label: string; entries: typeof entries }>();
+  const groups = new Map<string, { label: string; entries: typeof entries }>();
   const emptyLabel = groupProperty ? localeStrings.uncategorized : localeStrings.allEntries;
   const transformOpts = { strategy: linkResolution, allSlugs: allSlugs as FullSlug[] };
-  const groupDirection = view.groupBy?.direction;
 
   for (const entry of entries) {
     const rawValue = groupProperty ? resolveEntryPropertyValue(groupProperty, entry) : undefined;
     const label = isEmptyValue(rawValue) ? emptyLabel : formatValue(rawValue);
     const key = label || emptyLabel;
-    const existing = unsortedGroups.get(key);
+    const existing = groups.get(key);
     if (existing) {
       existing.entries.push(entry);
     } else {
-      unsortedGroups.set(key, { label: key, entries: [entry] });
+      groups.set(key, { label: key, entries: [entry] });
     }
   }
 
-  if (unsortedGroups.size === 0) {
-    unsortedGroups.set(localeStrings.allEntries, { label: localeStrings.allEntries, entries });
-  }
-
-  let groups: Map<string, { label: string; entries: typeof entries }>;
-  if (groupDirection && unsortedGroups.size > 1) {
-    const sortedKeys = Array.from(unsortedGroups.keys()).sort((a, b) => {
-      if (a === emptyLabel) return 1;
-      if (b === emptyLabel) return -1;
-      const cmp = a.localeCompare(b);
-      return groupDirection === "DESC" ? -cmp : cmp;
-    });
-    groups = new Map();
-    for (const key of sortedKeys) {
-      groups.set(key, unsortedGroups.get(key)!);
-    }
-  } else {
-    groups = unsortedGroups;
+  if (groups.size === 0) {
+    groups.set(localeStrings.allEntries, { label: localeStrings.allEntries, entries });
   }
 
   return (
