@@ -1121,11 +1121,13 @@ registerMethodFunction("file", "hasTag", (target, args) => {
   if (!isFileValue(target)) return false;
   if (args.length === 0) return false;
   return args.every((tag) => {
-    const value = toStringValue(tag);
+    const value = toStringValue(tag)?.toLowerCase();
     if (!value) return false;
-    if (target.tags.includes(value)) return true;
     const prefix = value.endsWith("/") ? value : `${value}/`;
-    return target.tags.some((t2) => t2.startsWith(prefix));
+    return target.tags.some((t2) => {
+      const lower = t2.toLowerCase();
+      return lower === value || lower.startsWith(prefix);
+    });
   });
 });
 registerMethodFunction("file", "hasLink", (target, [link]) => {
@@ -1921,5 +1923,5 @@ function evaluateFilter(node, context) {
 }
 
 export { S, compile, evaluate, evaluateFilter, k, l, resolvePropertyValue, slugifyFilePath, slugifyPath, transformLink, u2 as u };
-//# sourceMappingURL=chunk-4A627OLJ.js.map
-//# sourceMappingURL=chunk-4A627OLJ.js.map
+//# sourceMappingURL=chunk-OHKHTFVS.js.map
+//# sourceMappingURL=chunk-OHKHTFVS.js.map
