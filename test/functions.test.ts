@@ -492,6 +492,14 @@ describe("duration and file helpers", () => {
     expect(evaluate('file.hasTag("todo", "important")', context)).toBe(true);
     expect(evaluate('file.hasTag("todo", "missing")', context)).toBe(false);
   });
+
+  it("hasTag is case-insensitive", () => {
+    expect(evaluate('file.hasTag("TODO")', context)).toBe(true);
+    expect(evaluate('file.hasTag("Important")', context)).toBe(true);
+    expect(evaluate('file.hasTag("WORK/PROJECT")', context)).toBe(true);
+    expect(evaluate('file.hasTag("Work")', context)).toBe(true);
+    expect(evaluate('file.hasTag("MISSING")', context)).toBe(false);
+  });
 });
 
 describe("link helpers", () => {
