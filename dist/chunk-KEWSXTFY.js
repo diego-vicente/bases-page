@@ -88,8 +88,7 @@ function compareSort(a, b) {
 function buildSortKeys(view) {
   if (view?.sort && view.sort.length > 0) {
     if (view.groupBy?.property) {
-      const filtered = view.sort.filter((s) => s.property !== view.groupBy.property);
-      if (filtered.length > 0) return filtered;
+      return view.sort.filter((s) => s.property !== view.groupBy.property);
     }
     return view.sort;
   }
@@ -410,38 +409,22 @@ var BoardView = ({
   const localeStrings = i18n(locale).components.bases;
   const groupProperty = view.groupBy?.property ?? view.boardProperty;
   const columns = getColumns(view, basesData, entries).filter((column) => column !== groupProperty);
-  const unsortedGroups = /* @__PURE__ */ new Map();
+  const groups = /* @__PURE__ */ new Map();
   const emptyLabel = groupProperty ? localeStrings.uncategorized : localeStrings.allEntries;
   const transformOpts = { strategy: linkResolution, allSlugs };
-  const groupDirection = view.groupBy?.direction;
   for (const entry of entries) {
     const rawValue = groupProperty ? resolveEntryPropertyValue(groupProperty, entry) : void 0;
     const label = isEmptyValue(rawValue) ? emptyLabel : formatValue(rawValue);
     const key = label || emptyLabel;
-    const existing = unsortedGroups.get(key);
+    const existing = groups.get(key);
     if (existing) {
       existing.entries.push(entry);
     } else {
-      unsortedGroups.set(key, { label: key, entries: [entry] });
+      groups.set(key, { label: key, entries: [entry] });
     }
   }
-  if (unsortedGroups.size === 0) {
-    unsortedGroups.set(localeStrings.allEntries, { label: localeStrings.allEntries, entries });
-  }
-  let groups;
-  if (groupDirection && unsortedGroups.size > 1) {
-    const sortedKeys = Array.from(unsortedGroups.keys()).sort((a, b) => {
-      if (a === emptyLabel) return 1;
-      if (b === emptyLabel) return -1;
-      const cmp = a.localeCompare(b);
-      return groupDirection === "DESC" ? -cmp : cmp;
-    });
-    groups = /* @__PURE__ */ new Map();
-    for (const key of sortedKeys) {
-      groups.set(key, unsortedGroups.get(key));
-    }
-  } else {
-    groups = unsortedGroups;
+  if (groups.size === 0) {
+    groups.set(localeStrings.allEntries, { label: localeStrings.allEntries, entries });
   }
   return /* @__PURE__ */ u("div", { class: "bases-board-wrapper", children: [
     /* @__PURE__ */ u("div", { class: "bases-view-meta", children: formatMessage(localeStrings.showingCount, {
@@ -745,7 +728,7 @@ function formatMessage5(template, values) {
     template
   );
 }
-function groupEntries(entries, groupProperty, emptyLabel, groupDirection) {
+function groupEntries(entries, groupProperty, emptyLabel) {
   if (!groupProperty) return null;
   const groups = /* @__PURE__ */ new Map();
   for (const entry of entries) {
@@ -759,19 +742,7 @@ function groupEntries(entries, groupProperty, emptyLabel, groupDirection) {
       groups.set(key, [entry]);
     }
   }
-  if (groups.size === 0) return null;
-  if (!groupDirection) return groups;
-  const sortedKeys = Array.from(groups.keys()).sort((a, b) => {
-    if (a === emptyLabel) return 1;
-    if (b === emptyLabel) return -1;
-    const cmp = a.localeCompare(b);
-    return groupDirection === "DESC" ? -cmp : cmp;
-  });
-  const sorted = /* @__PURE__ */ new Map();
-  for (const key of sortedKeys) {
-    sorted.set(key, groups.get(key));
-  }
-  return sorted;
+  return groups.size > 0 ? groups : null;
 }
 function renderRow(entry, columns, view, slug, allSlugs, linkResolution) {
   const transformOpts = { strategy: linkResolution, allSlugs };
@@ -809,12 +780,7 @@ var TableView = ({
   const localeStrings = i18n(locale).components.bases;
   const groupProperty = view.groupBy?.property;
   const groupPropertyLabel = groupProperty ? getColumnLabel(groupProperty, basesData) : "";
-  const groups = groupEntries(
-    entries,
-    groupProperty,
-    localeStrings.uncategorized,
-    view.groupBy?.direction
-  );
+  const groups = groupEntries(entries, groupProperty, localeStrings.uncategorized);
   return /* @__PURE__ */ u("div", { class: "bases-table-wrapper", children: [
     /* @__PURE__ */ u("div", { class: "bases-view-meta", children: formatMessage5(localeStrings.showingCount, {
       count: entries.length,
@@ -964,5 +930,5 @@ var BasesBody_default = ((opts) => {
 });
 
 export { BasesBody_default, ViewSelector, i18n, registerBuiltinViews, resolveBasesEntries };
-//# sourceMappingURL=chunk-HBOP2YWK.js.map
-//# sourceMappingURL=chunk-HBOP2YWK.js.map
+//# sourceMappingURL=chunk-KEWSXTFY.js.map
+//# sourceMappingURL=chunk-KEWSXTFY.js.map
