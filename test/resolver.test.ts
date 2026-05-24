@@ -334,6 +334,64 @@ describe("resolveBasesEntries", () => {
     expect(result.entries.map((entry) => entry.slug)).toEqual(["x", "y"]);
   });
 
+  it("strips groupBy property from sort keys so sort applies within groups", () => {
+    const files: QuartzPluginData[] = [
+      makeFile({ slug: "a", frontmatter: { category: "B", title: "Zebra" } }),
+      makeFile({ slug: "b", frontmatter: { category: "A", title: "Mango" } }),
+      makeFile({ slug: "c", frontmatter: { category: "B", title: "Apple" } }),
+      makeFile({ slug: "d", frontmatter: { category: "A", title: "Cherry" } }),
+    ];
+    const basesData: BasesData = {};
+    const view: BasesView = {
+      type: "table",
+      groupBy: { property: "category", direction: "ASC" },
+      sort: [
+        { property: "category", direction: "ASC" },
+        { property: "title", direction: "ASC" },
+      ],
+    };
+    const result = resolveBasesEntries(basesData, files, view);
+    // category is stripped from sort keys — entries sorted by title ASC only.
+    // Without the fix, entries would be globally sorted by category then title,
+    // making groups appear sorted rather than entries within groups.
+    expect(result.entries.map((e) => e.slug)).toEqual(["c", "d", "b", "a"]);
+  });
+
+  it("returns unsorted entries when sort only contains the groupBy property", () => {
+    const files: QuartzPluginData[] = [
+      makeFile({ slug: "a", frontmatter: { category: "B", title: "Second" } }),
+      makeFile({ slug: "b", frontmatter: { category: "A", title: "First" } }),
+      makeFile({ slug: "c", frontmatter: { category: "B", title: "Third" } }),
+    ];
+    const basesData: BasesData = {};
+    const view: BasesView = {
+      type: "table",
+      groupBy: { property: "category", direction: "ASC" },
+      sort: [{ property: "category", direction: "ASC" }],
+    };
+    const result = resolveBasesEntries(basesData, files, view);
+    // All sort keys matched groupBy and were stripped — no sorting applied,
+    // entries retain their original iteration order.
+    expect(result.entries.map((e) => e.slug)).toEqual(["a", "b", "c"]);
+  });
+
+  it("keeps sort keys intact when groupBy property is not in sort", () => {
+    const files: QuartzPluginData[] = [
+      makeFile({ slug: "a", frontmatter: { category: "X", priority: 3 } }),
+      makeFile({ slug: "b", frontmatter: { category: "Y", priority: 1 } }),
+      makeFile({ slug: "c", frontmatter: { category: "X", priority: 2 } }),
+    ];
+    const basesData: BasesData = {};
+    const view: BasesView = {
+      type: "table",
+      groupBy: { property: "category" },
+      sort: [{ property: "priority", direction: "ASC" }],
+    };
+    const result = resolveBasesEntries(basesData, files, view);
+    // groupBy property (category) is not in sort keys — sort by priority ASC unchanged
+    expect(result.entries.map((e) => e.slug)).toEqual(["b", "c", "a"]);
+  });
+
   it("includes embeds in file properties", () => {
     const files: QuartzPluginData[] = [makeFile({ slug: "notes/embed-test", frontmatter: {} })];
     // Manually add embeds to the file data
