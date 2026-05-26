@@ -756,7 +756,11 @@ function splitAnchor(link) {
   if (fp.endsWith(".pdf")) {
     return [fp, anchor === void 0 ? "" : `#${anchor}`];
   }
-  const slugged = anchor === void 0 ? "" : "#" + slug(anchor);
+  if (anchor === void 0) {
+    return [fp, ""];
+  }
+  const bare = anchor.startsWith("^") ? anchor.slice(1) : anchor;
+  const slugged = "#" + slug(bare);
   return [fp, slugged];
 }
 function transformInternalLink(link) {
@@ -1923,5 +1927,5 @@ function evaluateFilter(node, context) {
 }
 
 export { S, compile, evaluate, evaluateFilter, k, l, resolvePropertyValue, slugifyFilePath, slugifyPath, transformLink, u2 as u };
-//# sourceMappingURL=chunk-OHKHTFVS.js.map
-//# sourceMappingURL=chunk-OHKHTFVS.js.map
+//# sourceMappingURL=chunk-O4BUOS5G.js.map
+//# sourceMappingURL=chunk-O4BUOS5G.js.map
