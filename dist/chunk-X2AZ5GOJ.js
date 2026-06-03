@@ -813,7 +813,7 @@ function transformLink(src, target, opts) {
 }
 function slugifyPath(s2) {
   return s2.split("/").map(
-    (segment) => segment.replace(/\s/g, "-").replace(/&/g, "-and-").replace(/%/g, "-percent").replace(/\?/g, "").replace(/#/g, "").toLowerCase()
+    (segment) => segment.replace(/\s/g, "-").replace(/&/g, "-and-").replace(/%/g, "-percent").replace(/\?/g, "").replace(/#/g, "").replace(/[<>:"|*]/g, "").toLowerCase()
   ).join("/").replace(/\/$/, "");
 }
 function _sluggify(s2) {
@@ -1927,5 +1927,5 @@ function evaluateFilter(node, context) {
 }
 
 export { S, compile, evaluate, evaluateFilter, k, l, resolvePropertyValue, slugifyFilePath, slugifyPath, transformLink, u2 as u };
-//# sourceMappingURL=chunk-O4BUOS5G.js.map
-//# sourceMappingURL=chunk-O4BUOS5G.js.map
+//# sourceMappingURL=chunk-X2AZ5GOJ.js.map
+//# sourceMappingURL=chunk-X2AZ5GOJ.js.map
