@@ -1,10 +1,10 @@
 import { createRequire } from 'module';
-import { BasesBody_default, resolveBasesEntries, registerBuiltinViews, i18n, ViewSelector } from './chunk-4HXXKSJ4.js';
-export { BasesBody_default as BasesBody } from './chunk-4HXXKSJ4.js';
+import { BasesBody_default, resolveBasesEntries, registerBuiltinViews, i18n, ViewSelector } from './chunk-BLVIEJQH.js';
+export { BasesBody_default as BasesBody } from './chunk-BLVIEJQH.js';
 import { registerCustomViews, viewRegistry } from './chunk-2AUMER56.js';
 export { registerCustomViews, viewRegistry } from './chunk-2AUMER56.js';
-import { slugifyFilePath, k, S, l } from './chunk-X2AZ5GOJ.js';
-export { compile, evaluate, evaluateFilter, resolvePropertyValue, slugifyPath, transformLink } from './chunk-X2AZ5GOJ.js';
+import { slugifyFilePath, k, S, l } from './chunk-4KOXBH73.js';
+export { compile, evaluate, evaluateFilter, resolvePropertyValue, slugifyPath, transformLink } from './chunk-4KOXBH73.js';
 import { __commonJS, __require, __export, __toESM } from './chunk-TDUJOYTU.js';
 import default2, { join } from 'path';
 import default3 from 'process';

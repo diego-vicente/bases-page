@@ -214,6 +214,21 @@ describe("resolveBasesEntries", () => {
     expect(alpha?.formulaValues.label).toBe("high");
   });
 
+  it("resolves formula-to-formula references regardless of declaration order", () => {
+    const basesData: BasesData = {
+      formulas: {
+        // `color` references `flag`, which is declared *after* it. Without
+        // dependency ordering this would read undefined → always "green".
+        color: 'if(formula.flag, "orange", "green")',
+        flag: "priority > 3",
+      },
+    };
+    const result = resolveBasesEntries(basesData, baseFiles);
+    const alpha = result.entries.find((entry) => entry.slug === "notes/alpha");
+    expect(alpha?.formulaValues.flag).toBe(true);
+    expect(alpha?.formulaValues.color).toBe("orange");
+  });
+
   it("sorts entries by property", () => {
     const basesData: BasesData = {};
     const view: BasesView = {

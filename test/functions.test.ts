@@ -173,6 +173,25 @@ describe("string methods", () => {
     expect(result.basename).toBe("Apple");
     expect(result.path).toBe("Compendium/Species/Dryad/Apple.md");
   });
+
+  it("strips wikilink syntax and resolves linked note properties", () => {
+    const lookup = new Map<string, EvalContext["file"]>();
+    lookup.set("Bar.md", {
+      name: "Bar.md",
+      basename: "Bar",
+      path: "Bar.md",
+      folder: "",
+      ext: "md",
+      tags: [],
+      links: [],
+      properties: { icon: "beer", color: "amber" },
+    });
+    const ctx = { ...context, _fileLookup: lookup };
+    // `placetype: "[[Bar]]"` arrives as the raw wikilink string.
+    expect(evaluate('"[[Bar]]".asFile().properties.icon', ctx)).toBe("beer");
+    // Aliased link form resolves to the target, not the alias.
+    expect(evaluate('"[[Bar|Pub]]".asFile().properties.color', ctx)).toBe("amber");
+  });
 });
 
 describe("number methods", () => {

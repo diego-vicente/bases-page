@@ -1,6 +1,6 @@
 import { createRequire } from 'module';
 import { viewRegistry, registerCustomViews } from './chunk-2AUMER56.js';
-import { u, evaluate, evaluateFilter, resolvePropertyValue, S, transformLink, slugifyPath } from './chunk-X2AZ5GOJ.js';
+import { u, evaluate, evaluateFilter, resolvePropertyValue, S, transformLink, slugifyPath } from './chunk-4KOXBH73.js';
 
 createRequire(import.meta.url);
 
@@ -75,6 +75,33 @@ function buildFileProperties(fileData, slug, frontmatter) {
     mtime
   };
 }
+function orderFormulas(formulas) {
+  const names = Object.keys(formulas);
+  const nameSet = new Set(names);
+  const deps = /* @__PURE__ */ new Map();
+  for (const name of names) {
+    const expr = String(formulas[name]);
+    const found = /* @__PURE__ */ new Set();
+    const re = /\bformula\.([A-Za-z_][A-Za-z0-9_]*)/g;
+    let m;
+    while (m = re.exec(expr)) {
+      if (m[1] !== name && nameSet.has(m[1])) found.add(m[1]);
+    }
+    deps.set(name, found);
+  }
+  const ordered = [];
+  const state = /* @__PURE__ */ new Map();
+  const visit = (name) => {
+    const s = state.get(name);
+    if (s === "done" || s === "visiting") return;
+    state.set(name, "visiting");
+    for (const dep of deps.get(name) ?? []) visit(dep);
+    state.set(name, "done");
+    ordered.push(name);
+  };
+  for (const name of names) visit(name);
+  return ordered;
+}
 function compareSort(a, b) {
   if (a === b) return 0;
   if (a === void 0 || a === null) return 1;
@@ -120,6 +147,7 @@ function sortEntries(entries, view) {
 function resolveBasesEntries(basesData, allFiles, view, selfContext) {
   const entries = [];
   const formulas = basesData.formulas ?? {};
+  const formulaOrder = orderFormulas(formulas);
   const fileLookup = /* @__PURE__ */ new Map();
   for (const fd of allFiles) {
     if (fd.unlisted === true) continue;
@@ -155,8 +183,8 @@ function resolveBasesEntries(basesData, allFiles, view, selfContext) {
       self: selfContext,
       _fileLookup: fileLookup
     };
-    for (const [name, expr] of Object.entries(formulas)) {
-      context.formula[name] = evaluate(expr, context);
+    for (const name of formulaOrder) {
+      context.formula[name] = evaluate(formulas[name], context);
     }
     if (!evaluateFilter(basesData.filters, context)) continue;
     if (view?.filters && !evaluateFilter(view.filters, context)) continue;
@@ -925,5 +953,5 @@ var BasesBody_default = ((opts) => {
 });
 
 export { BasesBody_default, ViewSelector, i18n, registerBuiltinViews, resolveBasesEntries };
-//# sourceMappingURL=chunk-4HXXKSJ4.js.map
-//# sourceMappingURL=chunk-4HXXKSJ4.js.map
+//# sourceMappingURL=chunk-BLVIEJQH.js.map
+//# sourceMappingURL=chunk-BLVIEJQH.js.map

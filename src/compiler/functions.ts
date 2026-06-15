@@ -676,8 +676,13 @@ registerMethodFunction("string", "title", (target) => {
 });
 
 registerMethodFunction("string", "asFile", (target, _args, context) => {
-  const path = toStringValue(target);
+  let path = toStringValue(target);
   if (!path) return undefined;
+  // Strip Obsidian wikilink syntax so links resolve: "[[Target|Alias]]" -> "Target".
+  // Property values that are links (e.g. `placetype: "[[Bar]]"`) arrive here as the
+  // raw "[[Bar]]" string; without this the lookup misses and .properties is lost.
+  const wiki = /^\[\[(.+?)(?:\|[\s\S]*?)?\]\]$/.exec(path.trim());
+  if (wiki) path = wiki[1].trim();
   const lookup = context._fileLookup;
   if (lookup) {
     const normalized = path.trim();

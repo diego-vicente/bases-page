@@ -73,6 +73,42 @@ function buildFileProperties(
   };
 }
 
+/**
+ * Order formulas so that a formula referencing `formula.X` is evaluated after X.
+ * Obsidian evaluates formula references lazily; bases-page evaluates them eagerly
+ * into `context.formula`, so without dependency ordering a forward reference
+ * (e.g. `Untitled: if(formula.Visited, ...)` declared before `Visited`) reads
+ * `undefined`. Returns names in safe evaluation order; cycles fall back to
+ * declaration order for the cyclic members.
+ */
+function orderFormulas(formulas: Record<string, string>): string[] {
+  const names = Object.keys(formulas);
+  const nameSet = new Set(names);
+  const deps = new Map<string, Set<string>>();
+  for (const name of names) {
+    const expr = String(formulas[name]);
+    const found = new Set<string>();
+    const re = /\bformula\.([A-Za-z_][A-Za-z0-9_]*)/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(expr))) {
+      if (m[1] !== name && nameSet.has(m[1])) found.add(m[1]);
+    }
+    deps.set(name, found);
+  }
+  const ordered: string[] = [];
+  const state = new Map<string, "visiting" | "done">();
+  const visit = (name: string): void => {
+    const s = state.get(name);
+    if (s === "done" || s === "visiting") return; // done, or cycle → bail
+    state.set(name, "visiting");
+    for (const dep of deps.get(name) ?? []) visit(dep);
+    state.set(name, "done");
+    ordered.push(name);
+  };
+  for (const name of names) visit(name);
+  return ordered;
+}
+
 function compareSort(a: unknown, b: unknown): number {
   if (a === b) return 0;
   if (a === undefined || a === null) return 1;
@@ -127,6 +163,7 @@ export function resolveBasesEntries(
 ): { entries: BasesEntry[]; total: number } {
   const entries: BasesEntry[] = [];
   const formulas = basesData.formulas ?? {};
+  const formulaOrder = orderFormulas(formulas);
 
   const fileLookup = new Map<string, EvalContext["file"]>();
   for (const fd of allFiles) {
@@ -171,9 +208,9 @@ export function resolveBasesEntries(
       _fileLookup: fileLookup,
     };
 
-    // Evaluate formulas
-    for (const [name, expr] of Object.entries(formulas)) {
-      context.formula[name] = evaluate(expr, context);
+    // Evaluate formulas in dependency order so formula-to-formula references resolve.
+    for (const name of formulaOrder) {
+      context.formula[name] = evaluate(formulas[name], context);
     }
 
     // Apply global filters

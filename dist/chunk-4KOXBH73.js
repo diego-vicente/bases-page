@@ -1400,8 +1400,10 @@ registerMethodFunction("string", "title", (target) => {
   return value.replace(/\b\w/g, (ch) => ch.toUpperCase());
 });
 registerMethodFunction("string", "asFile", (target, _args, context) => {
-  const path = toStringValue(target);
+  let path = toStringValue(target);
   if (!path) return void 0;
+  const wiki = /^\[\[(.+?)(?:\|[\s\S]*?)?\]\]$/.exec(path.trim());
+  if (wiki) path = wiki[1].trim();
   const lookup = context._fileLookup;
   if (lookup) {
     const normalized = path.trim();
@@ -1927,5 +1929,5 @@ function evaluateFilter(node, context) {
 }
 
 export { S, compile, evaluate, evaluateFilter, k, l, resolvePropertyValue, slugifyFilePath, slugifyPath, transformLink, u2 as u };
-//# sourceMappingURL=chunk-X2AZ5GOJ.js.map
-//# sourceMappingURL=chunk-X2AZ5GOJ.js.map
+//# sourceMappingURL=chunk-4KOXBH73.js.map
+//# sourceMappingURL=chunk-4KOXBH73.js.map
