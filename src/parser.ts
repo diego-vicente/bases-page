@@ -76,7 +76,14 @@ export function parseBasesData(raw: string): BasesData | null {
   try {
     data = parse(content);
   } catch {
-    return null;
+    // YAML forbids tabs in indentation, but Obsidian tolerates them and real
+    // notes contain stray leading tabs. Retry with leading tabs expanded to a
+    // 4-space tabstop before giving up.
+    try {
+      data = parse(content.replace(/^[\t ]+/gm, (ws) => ws.replace(/\t/g, "    ")));
+    } catch {
+      return null;
+    }
   }
 
   if (!data || typeof data !== "object" || Array.isArray(data)) {

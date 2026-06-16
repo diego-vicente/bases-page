@@ -600,4 +600,16 @@ describe("resolveBasesEntries", () => {
       "notes/with-null",
     ]);
   });
+
+  it("exposes this.file.basename in selfContext (self-referencing filters)", () => {
+    // Inline bases embedded in a note often filter `file.basename == this.file.basename`
+    // to show just the current note (e.g. a place's own location on a map).
+    const basesData: BasesData = { filters: "file.basename == this.file.basename" };
+    const selfContext = {
+      file: { name: "alpha", basename: "alpha", path: "notes/alpha.md", folder: "notes", ext: "md" },
+    };
+    const result = resolveBasesEntries(basesData, baseFiles, undefined, selfContext);
+    expect(result.entries).toHaveLength(1);
+    expect(result.entries[0]?.slug).toBe("notes/alpha");
+  });
 });

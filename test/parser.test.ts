@@ -89,6 +89,23 @@ views:
     expect(data).toBeNull();
   });
 
+  it("tolerates a stray leading tab in indentation (Obsidian allows it)", () => {
+    // The fourth line uses a TAB instead of 4 spaces — invalid YAML, but real
+    // Obsidian notes contain these. Should still parse after tab expansion.
+    const yaml = [
+      "filters:",
+      "  and:",
+      '    - \'status == "done"\'',
+      "\t- 'priority > 3'",
+      "views:",
+      "  - type: table",
+    ].join("\n");
+    const data = parseBasesData(yaml);
+    expect(data).not.toBeNull();
+    expect(data!.filters).toBeDefined();
+    expect(data!.views).toHaveLength(1);
+  });
+
   it("normalizes sort entries", () => {
     const yaml = `
 views:

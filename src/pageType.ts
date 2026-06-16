@@ -63,6 +63,7 @@ export const BasesPage: QuartzPageTypePlugin<BasesPageOptions> = (opts) => ({
       const basesSelfContext = {
         file: {
           name: baseName,
+          basename: baseName,
           path: filePath,
           folder,
           ext,
@@ -148,6 +149,7 @@ function createBasesCodeblockTransform(opts: BasesPageOptions | undefined): Tree
       const selfContext = {
         file: {
           name: selfName,
+          basename: selfName,
           path: selfPath,
           folder: selfLastSlash >= 0 ? selfPath.slice(0, selfLastSlash) : "",
           ext: selfPath.slice(selfPath.lastIndexOf(".") + 1),

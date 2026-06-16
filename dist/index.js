@@ -1,10 +1,10 @@
 import { createRequire } from 'module';
-import { BasesBody_default, resolveBasesEntries, registerBuiltinViews, i18n, ViewSelector } from './chunk-BLVIEJQH.js';
-export { BasesBody_default as BasesBody } from './chunk-BLVIEJQH.js';
+import { BasesBody_default, resolveBasesEntries, registerBuiltinViews, i18n, ViewSelector } from './chunk-7HBLZ4EX.js';
+export { BasesBody_default as BasesBody } from './chunk-7HBLZ4EX.js';
 import { registerCustomViews, viewRegistry } from './chunk-2AUMER56.js';
 export { registerCustomViews, viewRegistry } from './chunk-2AUMER56.js';
-import { slugifyFilePath, k, S, l } from './chunk-4KOXBH73.js';
-export { compile, evaluate, evaluateFilter, resolvePropertyValue, slugifyPath, transformLink } from './chunk-4KOXBH73.js';
+import { slugifyFilePath, k, S, l } from './chunk-OEUAOARI.js';
+export { compile, evaluate, evaluateFilter, resolvePropertyValue, slugifyPath, transformLink } from './chunk-OEUAOARI.js';
 import { __commonJS, __require, __export, __toESM } from './chunk-TDUJOYTU.js';
 import default2, { join } from 'path';
 import default3 from 'process';
@@ -18327,7 +18327,11 @@ function parseBasesData(raw) {
   try {
     data = (0, import_yaml.parse)(content);
   } catch {
-    return null;
+    try {
+      data = (0, import_yaml.parse)(content.replace(/^[\t ]+/gm, (ws) => ws.replace(/\t/g, "    ")));
+    } catch {
+      return null;
+    }
   }
   if (!data || typeof data !== "object" || Array.isArray(data)) {
     return null;
@@ -18374,6 +18378,7 @@ var BasesPage = (opts) => ({
       const basesSelfContext = {
         file: {
           name: baseName,
+          basename: baseName,
           path: filePath,
           folder,
           ext
@@ -18438,6 +18443,7 @@ function createBasesCodeblockTransform(opts) {
       const selfContext = {
         file: {
           name: selfName,
+          basename: selfName,
           path: selfPath,
           folder: selfLastSlash >= 0 ? selfPath.slice(0, selfLastSlash) : "",
           ext: selfPath.slice(selfPath.lastIndexOf(".") + 1)
