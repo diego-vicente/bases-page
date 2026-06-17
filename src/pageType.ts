@@ -146,15 +146,25 @@ function createBasesCodeblockTransform(opts: BasesPageOptions | undefined): Tree
           .pop()
           ?.replace(/\.[^.]+$/, "") ?? "";
       const selfLastSlash = selfPath.lastIndexOf("/");
-      const selfContext = {
-        file: {
-          name: selfName,
-          basename: selfName,
-          path: selfPath,
-          folder: selfLastSlash >= 0 ? selfPath.slice(0, selfLastSlash) : "",
-          ext: selfPath.slice(selfPath.lastIndexOf(".") + 1),
-        },
+      const toStrArray = (v: unknown): string[] =>
+        Array.isArray(v) ? v.filter((s): s is string => typeof s === "string") : [];
+      const selfFrontmatter = (fd.frontmatter ?? {}) as Record<string, unknown>;
+      // `this` must itself be a full file value (name/path/folder/ext/tags/links/
+      // basename) so `this.asLink()` dispatches as a file method. The nested `file`
+      // keeps `this.file.name` working. Previously only `.file` was set, so `this`
+      // wasn't a file value: `this.asLink()` returned undefined and filters like
+      // `type == this.asLink()` silently matched every UNTYPED note (folders, etc.).
+      const selfFile = {
+        name: selfName,
+        basename: selfName,
+        path: selfPath,
+        folder: selfLastSlash >= 0 ? selfPath.slice(0, selfLastSlash) : "",
+        ext: selfPath.slice(selfPath.lastIndexOf(".") + 1),
+        tags: toStrArray(selfFrontmatter.tags),
+        links: toStrArray(fd.links ?? fd.outgoingLinks),
+        properties: selfFrontmatter,
       };
+      const selfContext = { ...selfFile, file: selfFile };
 
       const baseSlugs = new Set(allSlugs.filter((s) => s.endsWith(".base")));
       const baseAliases = new Set([...baseSlugs].map((s) => s.replace(/\.base$/, "")));

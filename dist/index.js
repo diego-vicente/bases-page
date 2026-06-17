@@ -18440,15 +18440,19 @@ function createBasesCodeblockTransform(opts) {
       const selfPath = fd.relativePath ?? fd.filePath ?? slug;
       const selfName = selfPath.split("/").pop()?.replace(/\.[^.]+$/, "") ?? "";
       const selfLastSlash = selfPath.lastIndexOf("/");
-      const selfContext = {
-        file: {
-          name: selfName,
-          basename: selfName,
-          path: selfPath,
-          folder: selfLastSlash >= 0 ? selfPath.slice(0, selfLastSlash) : "",
-          ext: selfPath.slice(selfPath.lastIndexOf(".") + 1)
-        }
+      const toStrArray = (v2) => Array.isArray(v2) ? v2.filter((s3) => typeof s3 === "string") : [];
+      const selfFrontmatter = fd.frontmatter ?? {};
+      const selfFile = {
+        name: selfName,
+        basename: selfName,
+        path: selfPath,
+        folder: selfLastSlash >= 0 ? selfPath.slice(0, selfLastSlash) : "",
+        ext: selfPath.slice(selfPath.lastIndexOf(".") + 1),
+        tags: toStrArray(selfFrontmatter.tags),
+        links: toStrArray(fd.links ?? fd.outgoingLinks),
+        properties: selfFrontmatter
       };
+      const selfContext = { ...selfFile, file: selfFile };
       const baseSlugs = new Set(allSlugs.filter((s3) => s3.endsWith(".base")));
       const baseAliases = new Set([...baseSlugs].map((s3) => s3.replace(/\.base$/, "")));
       const contentSlugs = allSlugs.filter((s3) => !baseSlugs.has(s3) && !baseAliases.has(s3));
