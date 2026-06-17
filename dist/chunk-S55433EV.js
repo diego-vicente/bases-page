@@ -144,12 +144,13 @@ function sortEntries(entries, view) {
     return 0;
   });
 }
-function resolveBasesEntries(basesData, allFiles, view, selfContext) {
+function resolveBasesEntries(basesData, allFiles, view, selfContext, linkUniverse) {
   const entries = [];
   const formulas = basesData.formulas ?? {};
   const formulaOrder = orderFormulas(formulas);
+  const universe = linkUniverse ?? allFiles;
   const reverseLinks = /* @__PURE__ */ new Map();
-  for (const fd of allFiles) {
+  for (const fd of universe) {
     if (fd.unlisted === true) continue;
     const src = typeof fd.slug === "string" ? fd.slug : "";
     if (!src) continue;
@@ -162,7 +163,7 @@ function resolveBasesEntries(basesData, allFiles, view, selfContext) {
   }
   const backlinksOf = (slug) => reverseLinks.get(simplifySlug(slug)) ?? [];
   const fileLookup = /* @__PURE__ */ new Map();
-  for (const fd of allFiles) {
+  for (const fd of universe) {
     if (fd.unlisted === true) continue;
     const fdSlug = typeof fd.slug === "string" ? fd.slug : "";
     if (!fdSlug) continue;
@@ -966,5 +967,5 @@ var BasesBody_default = ((opts) => {
 });
 
 export { BasesBody_default, ViewSelector, i18n, registerBuiltinViews, resolveBasesEntries };
-//# sourceMappingURL=chunk-G2GU2YWW.js.map
-//# sourceMappingURL=chunk-G2GU2YWW.js.map
+//# sourceMappingURL=chunk-S55433EV.js.map
+//# sourceMappingURL=chunk-S55433EV.js.map

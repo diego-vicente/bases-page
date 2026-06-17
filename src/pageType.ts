@@ -19,7 +19,7 @@ import type { SimpleSlug } from "@quartz-community/utils";
 import { parseBasesData } from "./parser";
 import { resolveBasesEntries } from "./resolver";
 import BasesBody from "./components/BasesBody";
-import type { BasesPageOptions, BasesData } from "./types";
+import type { BasesPageOptions, BasesData, QuartzPluginData } from "./types";
 import type { EvalContext } from "./compiler";
 import { registerBuiltinViews } from "./components/views";
 import { registerCustomViews, viewRegistry } from "./registry";
@@ -126,6 +126,13 @@ function createBasesCodeblockTransform(opts: BasesPageOptions | undefined): Tree
     const slug = (componentData.fileData.slug as string) ?? "";
     const allSlugs = ((componentData.ctx as Record<string, unknown>)?.allSlugs as string[]) ?? [];
     const linkResolution = opts?.linkResolution ?? "shortest";
+    // Optional full-vault file set (published + unpublished) a host may stash on
+    // ctx; lets backlink counts/aggregates include unpublished notes while rows
+    // stay published-only. Falls back to allFiles when absent.
+    const linkUniverse =
+      ((componentData.ctx as Record<string, unknown>)?.fullVaultFiles as
+        | Record<string, unknown>[]
+        | undefined) ?? allFiles;
 
     visit(root, "element", (node: Element, index, parent) => {
       if (!parent || index === undefined) return;
@@ -181,6 +188,7 @@ function createBasesCodeblockTransform(opts: BasesPageOptions | undefined): Tree
         linkResolution,
         viewName,
         selfContext,
+        linkUniverse,
       );
       const fragment = fromHtml(htmlString, { fragment: true }) as HtmlRoot;
 
@@ -207,6 +215,7 @@ function renderBasesInline(
   linkResolution: "absolute" | "relative" | "shortest",
   viewName?: string,
   selfContext?: EvalContext["self"],
+  linkUniverse?: Record<string, unknown>[],
 ): string {
   let views = basesData.views ?? [];
 
@@ -243,7 +252,13 @@ function renderBasesInline(
 
   // Render each view panel
   const viewPanels = views.map((view, index) => {
-    const { entries, total } = resolveBasesEntries(basesData, allFiles, view, selfContext);
+    const { entries, total } = resolveBasesEntries(
+      basesData,
+      allFiles,
+      view,
+      selfContext,
+      linkUniverse as QuartzPluginData[] | undefined,
+    );
     const registration = viewRegistry.get(view.type);
     const Renderer = registration?.render;
     const activeClass = index === initialIndex ? " is-active" : "";

@@ -1,6 +1,6 @@
 import { createRequire } from 'module';
-import { BasesBody_default, resolveBasesEntries, registerBuiltinViews, i18n, ViewSelector } from './chunk-G2GU2YWW.js';
-export { BasesBody_default as BasesBody } from './chunk-G2GU2YWW.js';
+import { BasesBody_default, resolveBasesEntries, registerBuiltinViews, i18n, ViewSelector } from './chunk-S55433EV.js';
+export { BasesBody_default as BasesBody } from './chunk-S55433EV.js';
 import { registerCustomViews, viewRegistry } from './chunk-2AUMER56.js';
 export { registerCustomViews, viewRegistry } from './chunk-2AUMER56.js';
 import { slugifyFilePath, k, S, l } from './chunk-J5MPKHZZ.js';
@@ -18428,6 +18428,7 @@ function createBasesCodeblockTransform(opts) {
     const slug = componentData.fileData.slug ?? "";
     const allSlugs = componentData.ctx?.allSlugs ?? [];
     const linkResolution = opts?.linkResolution ?? "shortest";
+    const linkUniverse = componentData.ctx?.fullVaultFiles ?? allFiles;
     visit(root, "element", (node, index2, parent) => {
       if (!parent || index2 === void 0) return;
       const blockIndexStr = node.properties?.["dataQzBasesCodeblock"];
@@ -18466,7 +18467,8 @@ function createBasesCodeblockTransform(opts) {
         contentSlugs,
         linkResolution,
         viewName,
-        selfContext
+        selfContext,
+        linkUniverse
       );
       const fragment = fromHtml(htmlString, { fragment: true });
       node.tagName = "div";
@@ -18475,7 +18477,7 @@ function createBasesCodeblockTransform(opts) {
     });
   };
 }
-function renderBasesInline(basesData, allFiles, locale, localeStrings, opts, slug, allSlugs, linkResolution, viewName, selfContext) {
+function renderBasesInline(basesData, allFiles, locale, localeStrings, opts, slug, allSlugs, linkResolution, viewName, selfContext, linkUniverse) {
   let views = basesData.views ?? [];
   if (viewName) {
     const viewNameLower = viewName.toLowerCase();
@@ -18502,7 +18504,13 @@ function renderBasesInline(basesData, allFiles, locale, localeStrings, opts, slu
     k(S, null, ViewSelector({ views, activeIndex: initialIndex, locale }))
   );
   const viewPanels = views.map((view, index2) => {
-    const { entries, total } = resolveBasesEntries(basesData, allFiles, view, selfContext);
+    const { entries, total } = resolveBasesEntries(
+      basesData,
+      allFiles,
+      view,
+      selfContext,
+      linkUniverse
+    );
     const registration = viewRegistry.get(view.type);
     const Renderer = registration?.render;
     const activeClass = index2 === initialIndex ? " is-active" : "";

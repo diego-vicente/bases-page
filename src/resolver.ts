@@ -161,15 +161,21 @@ export function resolveBasesEntries(
   allFiles: QuartzPluginData[],
   view?: BasesView,
   selfContext?: EvalContext["self"],
+  // Optional FULL-vault file set (published + unpublished). When provided, the
+  // backlink index and file lookup span it — so `file.backlinks` counts and
+  // `value.asFile()` resolution include unpublished notes — while ROWS still come
+  // only from `allFiles` (published), so no unpublished note is listed/leaked.
+  linkUniverse?: QuartzPluginData[],
 ): { entries: BasesEntry[]; total: number } {
   const entries: BasesEntry[] = [];
   const formulas = basesData.formulas ?? {};
   const formulaOrder = orderFormulas(formulas);
+  const universe = linkUniverse ?? allFiles;
 
   // Reverse-link index for `file.backlinks`: target simple slug → source slugs.
   // Built first (full pass) so every file value below can carry its backlinks.
   const reverseLinks = new Map<string, string[]>();
-  for (const fd of allFiles) {
+  for (const fd of universe) {
     if ((fd as { unlisted?: unknown }).unlisted === true) continue;
     const src = typeof fd.slug === "string" ? fd.slug : "";
     if (!src) continue;
@@ -183,7 +189,7 @@ export function resolveBasesEntries(
   const backlinksOf = (slug: string): string[] => reverseLinks.get(simplifySlug(slug)) ?? [];
 
   const fileLookup = new Map<string, EvalContext["file"]>();
-  for (const fd of allFiles) {
+  for (const fd of universe) {
     if ((fd as { unlisted?: unknown }).unlisted === true) continue;
     const fdSlug = typeof fd.slug === "string" ? fd.slug : "";
     if (!fdSlug) continue;
