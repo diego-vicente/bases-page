@@ -89,6 +89,13 @@ export interface BasesPageOptions {
    * Default: "shortest"
    */
   linkResolution?: "absolute" | "relative" | "shortest";
+  /**
+   * Folder prefixes (vault-relative) whose `.base` files must NOT be published as
+   * standalone pages. `.base` files bypass content publish filters (they aren't
+   * markdown), so mirror your publish exclusions here to keep private bases
+   * (e.g. "Personal", "CARTO") off the site and out of backlinks/graph.
+   */
+  excludePathPrefixes?: string[];
 }
 
 // === Sort & Filter Types ===

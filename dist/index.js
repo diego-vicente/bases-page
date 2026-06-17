@@ -18355,7 +18355,11 @@ var BasesPage = (opts) => ({
   fileExtensions: [".base"],
   match: basesMatcher,
   generate({ content, ctx }) {
-    const baseFiles = ctx.allFiles.filter((fp) => fp.endsWith(".base"));
+    const excludePrefixes = (opts?.excludePathPrefixes ?? []).map(
+      (p2) => p2.endsWith("/") ? p2 : `${p2}/`
+    );
+    const isExcluded = (fp) => excludePrefixes.some((prefix) => fp.startsWith(prefix));
+    const baseFiles = ctx.allFiles.filter((fp) => fp.endsWith(".base") && !isExcluded(fp));
     const allFileData = content.map((c2) => c2[1].data);
     const virtualPages = [];
     for (const filePath of baseFiles) {

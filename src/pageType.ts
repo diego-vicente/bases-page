@@ -36,7 +36,14 @@ export const BasesPage: QuartzPageTypePlugin<BasesPageOptions> = (opts) => ({
   fileExtensions: [".base"],
   match: basesMatcher,
   generate({ content, ctx }) {
-    const baseFiles = ctx.allFiles.filter((fp) => fp.endsWith(".base"));
+    // `.base` files come from the FULL vault (ctx.allFiles), so they bypass content
+    // publish filters. Drop any inside excluded folders so private bases (e.g.
+    // Personal/CARTO task views) aren't published or linked into backlinks/graph.
+    const excludePrefixes = (opts?.excludePathPrefixes ?? []).map((p) =>
+      p.endsWith("/") ? p : `${p}/`,
+    );
+    const isExcluded = (fp: string) => excludePrefixes.some((prefix) => fp.startsWith(prefix));
+    const baseFiles = ctx.allFiles.filter((fp) => fp.endsWith(".base") && !isExcluded(fp));
     const allFileData = content.map((c) => c[1].data);
     const virtualPages: VirtualPage[] = [];
 
