@@ -1928,6 +1928,6 @@ function evaluateFilter(node, context) {
   return true;
 }
 
-export { S, compile, evaluate, evaluateFilter, k, l, resolvePropertyValue, slugifyFilePath, slugifyPath, transformLink, u2 as u };
-//# sourceMappingURL=chunk-OEUAOARI.js.map
-//# sourceMappingURL=chunk-OEUAOARI.js.map
+export { S, compile, evaluate, evaluateFilter, k, l, resolvePropertyValue, simplifySlug, slugifyFilePath, slugifyPath, transformLink, u2 as u };
+//# sourceMappingURL=chunk-J5MPKHZZ.js.map
+//# sourceMappingURL=chunk-J5MPKHZZ.js.map

@@ -1,6 +1,7 @@
 import type { BasesData, BasesEntry, BasesView, QuartzPluginData, SortEntry } from "./types";
 import { evaluate, evaluateFilter, resolvePropertyValue } from "./compiler";
 import type { EvalContext } from "./compiler";
+import { simplifySlug } from "@quartz-community/utils";
 
 function normalizeStringArray(values: unknown): string[] {
   if (!Array.isArray(values)) return [];
@@ -165,6 +166,22 @@ export function resolveBasesEntries(
   const formulas = basesData.formulas ?? {};
   const formulaOrder = orderFormulas(formulas);
 
+  // Reverse-link index for `file.backlinks`: target simple slug → source slugs.
+  // Built first (full pass) so every file value below can carry its backlinks.
+  const reverseLinks = new Map<string, string[]>();
+  for (const fd of allFiles) {
+    if ((fd as { unlisted?: unknown }).unlisted === true) continue;
+    const src = typeof fd.slug === "string" ? fd.slug : "";
+    if (!src) continue;
+    for (const target of normalizeStringArray(fd.links ?? fd.outgoingLinks)) {
+      const key = simplifySlug(target);
+      const arr = reverseLinks.get(key);
+      if (arr) arr.push(src);
+      else reverseLinks.set(key, [src]);
+    }
+  }
+  const backlinksOf = (slug: string): string[] => reverseLinks.get(simplifySlug(slug)) ?? [];
+
   const fileLookup = new Map<string, EvalContext["file"]>();
   for (const fd of allFiles) {
     if ((fd as { unlisted?: unknown }).unlisted === true) continue;
@@ -173,7 +190,7 @@ export function resolveBasesEntries(
     const fdPath = getFilePath(fd, fdSlug);
     const fm = (fd.frontmatter ?? {}) as Record<string, unknown>;
     const fp = buildFileProperties(fd, fdSlug, fm);
-    const fileValue: EvalContext["file"] = { ...fp, properties: fm };
+    const fileValue: EvalContext["file"] = { ...fp, properties: fm, backlinks: backlinksOf(fdSlug) };
 
     fileLookup.set(fdPath, fileValue);
     const withoutExt = fdPath.replace(/\.md$/, "");
@@ -202,7 +219,7 @@ export function resolveBasesEntries(
     const fileProperties = buildFileProperties(fileData, slug, frontmatter);
     const context = {
       note: frontmatter,
-      file: { ...fileProperties, properties: frontmatter },
+      file: { ...fileProperties, properties: frontmatter, backlinks: backlinksOf(slug) },
       formula: {} as Record<string, unknown>,
       self: selfContext,
       _fileLookup: fileLookup,

@@ -112,6 +112,8 @@ type EvalContext = {
         ext: string;
         tags: string[];
         links: string[];
+        /** Slugs of notes that link TO this file (reverse-link index). */
+        backlinks?: string[];
         embeds?: string[];
         properties?: Record<string, unknown>;
         created?: string | Date;

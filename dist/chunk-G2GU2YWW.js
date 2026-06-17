@@ -1,6 +1,6 @@
 import { createRequire } from 'module';
 import { viewRegistry, registerCustomViews } from './chunk-2AUMER56.js';
-import { u, evaluate, evaluateFilter, resolvePropertyValue, S, transformLink, slugifyPath } from './chunk-OEUAOARI.js';
+import { u, simplifySlug, evaluate, evaluateFilter, resolvePropertyValue, S, transformLink, slugifyPath } from './chunk-J5MPKHZZ.js';
 
 createRequire(import.meta.url);
 
@@ -148,6 +148,19 @@ function resolveBasesEntries(basesData, allFiles, view, selfContext) {
   const entries = [];
   const formulas = basesData.formulas ?? {};
   const formulaOrder = orderFormulas(formulas);
+  const reverseLinks = /* @__PURE__ */ new Map();
+  for (const fd of allFiles) {
+    if (fd.unlisted === true) continue;
+    const src = typeof fd.slug === "string" ? fd.slug : "";
+    if (!src) continue;
+    for (const target of normalizeStringArray(fd.links ?? fd.outgoingLinks)) {
+      const key = simplifySlug(target);
+      const arr = reverseLinks.get(key);
+      if (arr) arr.push(src);
+      else reverseLinks.set(key, [src]);
+    }
+  }
+  const backlinksOf = (slug) => reverseLinks.get(simplifySlug(slug)) ?? [];
   const fileLookup = /* @__PURE__ */ new Map();
   for (const fd of allFiles) {
     if (fd.unlisted === true) continue;
@@ -156,7 +169,7 @@ function resolveBasesEntries(basesData, allFiles, view, selfContext) {
     const fdPath = getFilePath(fd, fdSlug);
     const fm = fd.frontmatter ?? {};
     const fp = buildFileProperties(fd, fdSlug, fm);
-    const fileValue = { ...fp, properties: fm };
+    const fileValue = { ...fp, properties: fm, backlinks: backlinksOf(fdSlug) };
     fileLookup.set(fdPath, fileValue);
     const withoutExt = fdPath.replace(/\.md$/, "");
     if (withoutExt !== fdPath) fileLookup.set(withoutExt, fileValue);
@@ -178,7 +191,7 @@ function resolveBasesEntries(basesData, allFiles, view, selfContext) {
     const fileProperties = buildFileProperties(fileData, slug, frontmatter);
     const context = {
       note: frontmatter,
-      file: { ...fileProperties, properties: frontmatter },
+      file: { ...fileProperties, properties: frontmatter, backlinks: backlinksOf(slug) },
       formula: {},
       self: selfContext,
       _fileLookup: fileLookup
@@ -953,5 +966,5 @@ var BasesBody_default = ((opts) => {
 });
 
 export { BasesBody_default, ViewSelector, i18n, registerBuiltinViews, resolveBasesEntries };
-//# sourceMappingURL=chunk-7HBLZ4EX.js.map
-//# sourceMappingURL=chunk-7HBLZ4EX.js.map
+//# sourceMappingURL=chunk-G2GU2YWW.js.map
+//# sourceMappingURL=chunk-G2GU2YWW.js.map
