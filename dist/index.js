@@ -18372,13 +18372,17 @@ var BasesPage = (opts) => ({
       }
       const basesData = parseBasesData(raw);
       if (!basesData) continue;
-      const slug = slugifyFilePath(filePath);
       const fileWithoutExt = filePath.replace(/\.base$/, "");
       const baseName = fileWithoutExt.split("/").pop() ?? "Base";
       const lastSlash = filePath.lastIndexOf("/");
       const folder = lastSlash >= 0 ? filePath.slice(0, lastSlash) : "";
       const dotIndex = filePath.lastIndexOf(".");
       const ext = dotIndex >= 0 ? filePath.slice(dotIndex + 1) : "";
+      const isFolderIndex = baseName === "index" && folder !== "";
+      const slug = slugifyFilePath(
+        isFolderIndex ? `${fileWithoutExt}.md` : filePath
+      );
+      const title = isFolderIndex ? folder.split("/").pop() ?? baseName : baseName;
       const basesSelfContext = {
         file: {
           name: baseName,
@@ -18390,9 +18394,9 @@ var BasesPage = (opts) => ({
       };
       virtualPages.push({
         slug,
-        title: baseName,
+        title,
         data: {
-          frontmatter: { title: baseName, tags: [] },
+          frontmatter: { title, tags: [] },
           links: resolveBasesEntries(
             basesData,
             allFileData,

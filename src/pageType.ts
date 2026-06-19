@@ -59,7 +59,6 @@ export const BasesPage: QuartzPageTypePlugin<BasesPageOptions> = (opts) => ({
       const basesData = parseBasesData(raw);
       if (!basesData) continue;
 
-      const slug = slugifyFilePath(filePath as unknown as FilePath) as unknown as FullSlug;
       const fileWithoutExt = filePath.replace(/\.base$/, "");
       const baseName = fileWithoutExt.split("/").pop() ?? "Base";
 
@@ -67,6 +66,15 @@ export const BasesPage: QuartzPageTypePlugin<BasesPageOptions> = (opts) => ({
       const folder = lastSlash >= 0 ? filePath.slice(0, lastSlash) : "";
       const dotIndex = filePath.lastIndexOf(".");
       const ext = dotIndex >= 0 ? filePath.slice(dotIndex + 1) : "";
+
+      // A folder's `index.base` IS that folder's index page: it takes the folder's
+      // slug and is titled by the folder, overriding the default folder listing.
+      const isFolderIndex = baseName === "index" && folder !== "";
+      const slug = slugifyFilePath(
+        (isFolderIndex ? `${fileWithoutExt}.md` : filePath) as unknown as FilePath,
+      ) as unknown as FullSlug;
+      const title = isFolderIndex ? (folder.split("/").pop() ?? baseName) : baseName;
+
       const basesSelfContext = {
         file: {
           name: baseName,
@@ -79,9 +87,9 @@ export const BasesPage: QuartzPageTypePlugin<BasesPageOptions> = (opts) => ({
 
       virtualPages.push({
         slug,
-        title: baseName,
+        title,
         data: {
-          frontmatter: { title: baseName, tags: [] },
+          frontmatter: { title, tags: [] },
           links: resolveBasesEntries(
             basesData,
             allFileData,
