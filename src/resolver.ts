@@ -1,8 +1,7 @@
 import type { BasesData, BasesEntry, BasesView, QuartzPluginData, SortEntry } from "./types";
 import { evaluate, evaluateFilter, resolvePropertyValue } from "./compiler";
 import type { EvalContext } from "./compiler";
-import { simplifySlug, slugifyFilePath } from "@quartz-community/utils";
-import type { FilePath } from "@quartz-community/types";
+import { simplifySlug } from "@quartz-community/utils";
 
 function normalizeStringArray(values: unknown): string[] {
   if (!Array.isArray(values)) return [];
@@ -192,21 +191,25 @@ export function resolveBasesEntries(
   const formulaOrder = orderFormulas(formulas);
   const universe = linkUniverse ?? allFiles;
 
-  // Resolves a frontmatter wikilink name (a note basename like "A Minecraft Movie
-  // (2025)") to a full slug, the way body links are already resolved. Keyed by the
-  // slug's last segment so `slugifyFilePath(name)` lines up with the target file.
+  // Resolves a frontmatter wikilink (a note name like "A Minecraft Movie (2025)")
+  // to a full slug. Keyed by lowercased basename + aliases — matching the raw note
+  // name, NOT a re-slugified one (slugify isn't reversible: the stored slug may
+  // strip characters, e.g. "(2025)" → "2025", that slugify would keep).
   const slugByName = new Map<string, string>();
   for (const fd of universe) {
     const s = typeof fd.slug === "string" ? fd.slug : "";
     if (!s) continue;
-    const segment = s.split("/").pop() ?? s;
-    if (!slugByName.has(segment)) slugByName.set(segment, s);
+    const names = [getBaseName(getFilePath(fd, s))];
+    const fm = (fd.frontmatter ?? {}) as Record<string, unknown>;
+    names.push(...normalizeStringArray(fm.aliases));
+    for (const n of names) {
+      const key = n.trim().toLowerCase();
+      if (key && !slugByName.has(key)) slugByName.set(key, s);
+    }
   }
   const resolveWikiName = (name: string): string | undefined => {
-    const segment = slugifyFilePath(`${name}.md` as FilePath)
-      .split("/")
-      .pop();
-    return segment ? slugByName.get(segment) : undefined;
+    const base = name.split("/").pop()?.trim().toLowerCase();
+    return base ? slugByName.get(base) : undefined;
   };
 
   // Reverse-link index for `file.backlinks`: target simple slug → source slugs.

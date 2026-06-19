@@ -1,6 +1,6 @@
 import { createRequire } from 'module';
 import { viewRegistry, registerCustomViews } from './chunk-2AUMER56.js';
-import { u, simplifySlug, evaluate, evaluateFilter, slugifyFilePath, resolvePropertyValue, S, transformLink, slugifyPath } from './chunk-E3NWQTOW.js';
+import { u, simplifySlug, evaluate, evaluateFilter, resolvePropertyValue, S, transformLink, slugifyPath } from './chunk-E3NWQTOW.js';
 
 createRequire(import.meta.url);
 
@@ -166,12 +166,17 @@ function resolveBasesEntries(basesData, allFiles, view, selfContext, linkUnivers
   for (const fd of universe) {
     const s = typeof fd.slug === "string" ? fd.slug : "";
     if (!s) continue;
-    const segment = s.split("/").pop() ?? s;
-    if (!slugByName.has(segment)) slugByName.set(segment, s);
+    const names = [getBaseName(getFilePath(fd, s))];
+    const fm = fd.frontmatter ?? {};
+    names.push(...normalizeStringArray(fm.aliases));
+    for (const n of names) {
+      const key = n.trim().toLowerCase();
+      if (key && !slugByName.has(key)) slugByName.set(key, s);
+    }
   }
   const resolveWikiName = (name) => {
-    const segment = slugifyFilePath(`${name}.md`).split("/").pop();
-    return segment ? slugByName.get(segment) : void 0;
+    const base = name.split("/").pop()?.trim().toLowerCase();
+    return base ? slugByName.get(base) : void 0;
   };
   const reverseLinks = /* @__PURE__ */ new Map();
   const addReverse = (targetKey, src) => {
@@ -1009,5 +1014,5 @@ var BasesBody_default = ((opts) => {
 });
 
 export { BasesBody_default, ViewSelector, i18n, registerBuiltinViews, resolveBasesEntries };
-//# sourceMappingURL=chunk-77CZUKM7.js.map
-//# sourceMappingURL=chunk-77CZUKM7.js.map
+//# sourceMappingURL=chunk-GS4CU3UK.js.map
+//# sourceMappingURL=chunk-GS4CU3UK.js.map
