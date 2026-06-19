@@ -34,6 +34,14 @@ export default ((opts?: BasesPageOptions) => {
     const baseAliases = new Set([...baseSlugs].map((s) => s.replace(/\.base$/, "")));
     const allSlugs = rawSlugs.filter((s) => !baseSlugs.has(s) && !baseAliases.has(s));
     const linkResolution = basesOptions?.linkResolution ?? "shortest";
+    // Optional full-vault file set a host may stash on ctx (published + unpublished).
+    // Lets backlink-driven formulas (e.g. a film's Viewings → Rating) include
+    // private notes like watch-log Check-ins, while listed rows stay published-only.
+    // Falls back to allFiles when absent.
+    const linkUniverse =
+      ((props.ctx as Record<string, unknown>)?.fullVaultFiles as
+        | Parameters<typeof resolveBasesEntries>[1]
+        | undefined) ?? props.allFiles;
 
     if (!basesData) {
       return <div class="bases-page bases-empty">{localeStrings.noData}</div>;
@@ -79,6 +87,7 @@ export default ((opts?: BasesPageOptions) => {
               props.allFiles,
               view,
               basesSelfContext,
+              linkUniverse,
             );
             const registration = viewRegistry.get(view.type);
             const Renderer = registration?.render;

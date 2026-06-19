@@ -1,11 +1,31 @@
 import type { BasesData, BasesEntry, BasesView, QuartzPluginData, SortEntry } from "./types";
 import { evaluate, evaluateFilter, resolvePropertyValue } from "./compiler";
 import type { EvalContext } from "./compiler";
-import { simplifySlug } from "@quartz-community/utils";
+import { simplifySlug, slugifyFilePath } from "@quartz-community/utils";
+import type { FilePath } from "@quartz-community/types";
 
 function normalizeStringArray(values: unknown): string[] {
   if (!Array.isArray(values)) return [];
   return values.filter((value): value is string => typeof value === "string");
+}
+
+const WIKILINK_RE = /\[\[([^\]]+?)\]\]/g;
+
+// Collects `[[…]]` targets (alias/heading stripped) from any frontmatter value —
+// a string, or an array of strings. Obsidian counts frontmatter wikilinks as
+// real links, so they must feed `file.backlinks` (e.g. a Check-in's `on: [[Film]]`
+// is a backlink of that film) even though Quartz keeps them out of `data.links`.
+function extractFrontmatterWikilinks(value: unknown, out: string[]): void {
+  if (typeof value === "string") {
+    for (const match of value.matchAll(WIKILINK_RE)) {
+      const target = match[1]?.replace(/[#|].*$/, "").trim();
+      if (target) out.push(target);
+    }
+  } else if (Array.isArray(value)) {
+    for (const item of value) extractFrontmatterWikilinks(item, out);
+  } else if (value && typeof value === "object") {
+    for (const item of Object.values(value)) extractFrontmatterWikilinks(item, out);
+  }
 }
 
 function getFilePath(fileData: QuartzPluginData, slug: string): string {
@@ -172,18 +192,45 @@ export function resolveBasesEntries(
   const formulaOrder = orderFormulas(formulas);
   const universe = linkUniverse ?? allFiles;
 
+  // Resolves a frontmatter wikilink name (a note basename like "A Minecraft Movie
+  // (2025)") to a full slug, the way body links are already resolved. Keyed by the
+  // slug's last segment so `slugifyFilePath(name)` lines up with the target file.
+  const slugByName = new Map<string, string>();
+  for (const fd of universe) {
+    const s = typeof fd.slug === "string" ? fd.slug : "";
+    if (!s) continue;
+    const segment = s.split("/").pop() ?? s;
+    if (!slugByName.has(segment)) slugByName.set(segment, s);
+  }
+  const resolveWikiName = (name: string): string | undefined => {
+    const segment = slugifyFilePath(`${name}.md` as FilePath)
+      .split("/")
+      .pop();
+    return segment ? slugByName.get(segment) : undefined;
+  };
+
   // Reverse-link index for `file.backlinks`: target simple slug → source slugs.
   // Built first (full pass) so every file value below can carry its backlinks.
   const reverseLinks = new Map<string, string[]>();
+  const addReverse = (targetKey: string, src: string) => {
+    const arr = reverseLinks.get(targetKey);
+    if (arr) arr.push(src);
+    else reverseLinks.set(targetKey, [src]);
+  };
   for (const fd of universe) {
     if ((fd as { unlisted?: unknown }).unlisted === true) continue;
     const src = typeof fd.slug === "string" ? fd.slug : "";
     if (!src) continue;
     for (const target of normalizeStringArray(fd.links ?? fd.outgoingLinks)) {
-      const key = simplifySlug(target);
-      const arr = reverseLinks.get(key);
-      if (arr) arr.push(src);
-      else reverseLinks.set(key, [src]);
+      addReverse(simplifySlug(target), src);
+    }
+    // Also index frontmatter wikilinks (e.g. a Check-in's `on: [[Film]]`), which
+    // Quartz omits from `data.links` but Obsidian treats as backlinks.
+    const fmLinks: string[] = [];
+    extractFrontmatterWikilinks(fd.frontmatter ?? {}, fmLinks);
+    for (const name of fmLinks) {
+      const resolved = resolveWikiName(name);
+      if (resolved) addReverse(simplifySlug(resolved), src);
     }
   }
   const backlinksOf = (slug: string): string[] => reverseLinks.get(simplifySlug(slug)) ?? [];

@@ -1,6 +1,6 @@
 import { createRequire } from 'module';
 import { viewRegistry, registerCustomViews } from './chunk-2AUMER56.js';
-import { u, simplifySlug, evaluate, evaluateFilter, resolvePropertyValue, S, transformLink, slugifyPath } from './chunk-E3NWQTOW.js';
+import { u, simplifySlug, evaluate, evaluateFilter, slugifyFilePath, resolvePropertyValue, S, transformLink, slugifyPath } from './chunk-E3NWQTOW.js';
 
 createRequire(import.meta.url);
 
@@ -22,6 +22,19 @@ function ViewSelector({ views, activeIndex }) {
 function normalizeStringArray(values) {
   if (!Array.isArray(values)) return [];
   return values.filter((value) => typeof value === "string");
+}
+var WIKILINK_RE = /\[\[([^\]]+?)\]\]/g;
+function extractFrontmatterWikilinks(value, out) {
+  if (typeof value === "string") {
+    for (const match of value.matchAll(WIKILINK_RE)) {
+      const target = match[1]?.replace(/[#|].*$/, "").trim();
+      if (target) out.push(target);
+    }
+  } else if (Array.isArray(value)) {
+    for (const item of value) extractFrontmatterWikilinks(item, out);
+  } else if (value && typeof value === "object") {
+    for (const item of Object.values(value)) extractFrontmatterWikilinks(item, out);
+  }
 }
 function getFilePath(fileData, slug) {
   if (typeof fileData.relativePath === "string") return fileData.relativePath;
@@ -149,16 +162,35 @@ function resolveBasesEntries(basesData, allFiles, view, selfContext, linkUnivers
   const formulas = basesData.formulas ?? {};
   const formulaOrder = orderFormulas(formulas);
   const universe = linkUniverse ?? allFiles;
+  const slugByName = /* @__PURE__ */ new Map();
+  for (const fd of universe) {
+    const s = typeof fd.slug === "string" ? fd.slug : "";
+    if (!s) continue;
+    const segment = s.split("/").pop() ?? s;
+    if (!slugByName.has(segment)) slugByName.set(segment, s);
+  }
+  const resolveWikiName = (name) => {
+    const segment = slugifyFilePath(`${name}.md`).split("/").pop();
+    return segment ? slugByName.get(segment) : void 0;
+  };
   const reverseLinks = /* @__PURE__ */ new Map();
+  const addReverse = (targetKey, src) => {
+    const arr = reverseLinks.get(targetKey);
+    if (arr) arr.push(src);
+    else reverseLinks.set(targetKey, [src]);
+  };
   for (const fd of universe) {
     if (fd.unlisted === true) continue;
     const src = typeof fd.slug === "string" ? fd.slug : "";
     if (!src) continue;
     for (const target of normalizeStringArray(fd.links ?? fd.outgoingLinks)) {
-      const key = simplifySlug(target);
-      const arr = reverseLinks.get(key);
-      if (arr) arr.push(src);
-      else reverseLinks.set(key, [src]);
+      addReverse(simplifySlug(target), src);
+    }
+    const fmLinks = [];
+    extractFrontmatterWikilinks(fd.frontmatter ?? {}, fmLinks);
+    for (const name of fmLinks) {
+      const resolved = resolveWikiName(name);
+      if (resolved) addReverse(simplifySlug(resolved), src);
     }
   }
   const backlinksOf = (slug) => reverseLinks.get(simplifySlug(slug)) ?? [];
@@ -245,7 +277,7 @@ function i18n(locale) {
 }
 
 // src/components/shared/links.tsx
-var WIKILINK_RE = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
+var WIKILINK_RE2 = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
 var MDLINK_RE = /\[([^\]]*)\]\(([^)]+)\)/g;
 var URL_RE = /https?:\/\/[^\s<>]+/g;
 function renderTextWithLinks(text, ctx) {
@@ -254,7 +286,7 @@ function renderTextWithLinks(text, ctx) {
     strategy: ctx.linkResolution,
     allSlugs: ctx.allSlugs
   };
-  for (const match of text.matchAll(WIKILINK_RE)) {
+  for (const match of text.matchAll(WIKILINK_RE2)) {
     const target = match[1] ?? "";
     const display = match[2] ?? target;
     const href = transformLink(ctx.slug, target, transformOpts);
@@ -513,13 +545,13 @@ function formatMessage2(template, values) {
   );
 }
 var HEX_COLOR_RE = /^#(?:[0-9a-f]{3}){1,2}$/i;
-var WIKILINK_RE2 = /^\[\[(.+?)(?:\|.*)?\]\]$/;
+var WIKILINK_RE3 = /^\[\[(.+?)(?:\|.*)?\]\]$/;
 function resolveImageSrc(raw, opts) {
   if (!raw) return { src: "", isColor: false };
   if (HEX_COLOR_RE.test(raw)) {
     return { src: raw, isColor: true };
   }
-  const wikiMatch = WIKILINK_RE2.exec(raw);
+  const wikiMatch = WIKILINK_RE3.exec(raw);
   if (wikiMatch?.[1]) {
     const target = wikiMatch[1].trim();
     const resolved = transformLink(opts.slug, target, {
@@ -903,6 +935,7 @@ var BasesBody_default = ((opts) => {
     const baseAliases = new Set([...baseSlugs].map((s) => s.replace(/\.base$/, "")));
     const allSlugs = rawSlugs.filter((s) => !baseSlugs.has(s) && !baseAliases.has(s));
     const linkResolution = basesOptions?.linkResolution ?? "shortest";
+    const linkUniverse = props.ctx?.fullVaultFiles ?? props.allFiles;
     if (!basesData) {
       return /* @__PURE__ */ u("div", { class: "bases-page bases-empty", children: localeStrings.noData });
     }
@@ -936,7 +969,8 @@ var BasesBody_default = ((opts) => {
           basesData,
           props.allFiles,
           view,
-          basesSelfContext
+          basesSelfContext,
+          linkUniverse
         );
         const registration = viewRegistry.get(view.type);
         const Renderer = registration?.render;
@@ -975,5 +1009,5 @@ var BasesBody_default = ((opts) => {
 });
 
 export { BasesBody_default, ViewSelector, i18n, registerBuiltinViews, resolveBasesEntries };
-//# sourceMappingURL=chunk-Y2NIUKBJ.js.map
-//# sourceMappingURL=chunk-Y2NIUKBJ.js.map
+//# sourceMappingURL=chunk-77CZUKM7.js.map
+//# sourceMappingURL=chunk-77CZUKM7.js.map
