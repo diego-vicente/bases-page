@@ -111,7 +111,8 @@ function orderFormulas(formulas: Record<string, string>): string[] {
     const re = /\bformula\.([A-Za-z_][A-Za-z0-9_]*)/g;
     let m: RegExpExecArray | null;
     while ((m = re.exec(expr))) {
-      if (m[1] !== name && nameSet.has(m[1])) found.add(m[1]);
+      const dep = m[1];
+      if (dep && dep !== name && nameSet.has(dep)) found.add(dep);
     }
     deps.set(name, found);
   }
@@ -283,7 +284,7 @@ export function resolveBasesEntries(
 
     // Evaluate formulas in dependency order so formula-to-formula references resolve.
     for (const name of formulaOrder) {
-      context.formula[name] = evaluate(formulas[name], context);
+      context.formula[name] = evaluate(formulas[name] ?? "", context);
     }
 
     // Apply global filters

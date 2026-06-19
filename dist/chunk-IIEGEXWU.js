@@ -945,7 +945,12 @@ function isFileValue(value) {
   if (!isRecord(value)) return false;
   return typeof value.name === "string" && typeof value.path === "string" && typeof value.folder === "string" && typeof value.ext === "string" && Array.isArray(value.tags) && Array.isArray(value.links) && typeof value.basename === "string";
 }
+var WIKILINK_VALUE_RE = /^\[\[([^\]|#]+)(?:[#|][^\]]*)?\]\]$/;
 function resolveSelfName(value) {
+  if (typeof value === "string") {
+    const inner = value.match(WIKILINK_VALUE_RE)?.[1]?.trim();
+    return inner ? inner.split("/").pop() ?? inner : null;
+  }
   if (!isRecord(value)) return null;
   if (isRecord(value.file) && typeof value.file.name === "string") {
     return value.file.name;
@@ -956,6 +961,9 @@ function resolveSelfName(value) {
   return null;
 }
 function resolveSelfPath(value) {
+  if (typeof value === "string") {
+    return value.match(WIKILINK_VALUE_RE)?.[1]?.trim() ?? null;
+  }
   if (!isRecord(value)) return null;
   if (isRecord(value.file) && typeof value.file.path === "string") {
     return value.file.path;
@@ -2000,5 +2008,5 @@ function evaluateFilter(node, context) {
 }
 
 export { S, compile, evaluate, evaluateFilter, k, l, resolvePropertyValue, simplifySlug, slugifyFilePath, slugifyPath, transformLink, u2 as u };
-//# sourceMappingURL=chunk-E3NWQTOW.js.map
-//# sourceMappingURL=chunk-E3NWQTOW.js.map
+//# sourceMappingURL=chunk-IIEGEXWU.js.map
+//# sourceMappingURL=chunk-IIEGEXWU.js.map

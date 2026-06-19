@@ -1,6 +1,6 @@
 import { createRequire } from 'module';
 import { viewRegistry, registerCustomViews } from './chunk-2AUMER56.js';
-import { u, simplifySlug, evaluate, evaluateFilter, resolvePropertyValue, S, transformLink, slugifyPath } from './chunk-E3NWQTOW.js';
+import { u, simplifySlug, evaluate, evaluateFilter, resolvePropertyValue, S, transformLink, slugifyPath } from './chunk-IIEGEXWU.js';
 
 createRequire(import.meta.url);
 
@@ -98,7 +98,8 @@ function orderFormulas(formulas) {
     const re = /\bformula\.([A-Za-z_][A-Za-z0-9_]*)/g;
     let m;
     while (m = re.exec(expr)) {
-      if (m[1] !== name && nameSet.has(m[1])) found.add(m[1]);
+      const dep = m[1];
+      if (dep && dep !== name && nameSet.has(dep)) found.add(dep);
     }
     deps.set(name, found);
   }
@@ -235,7 +236,7 @@ function resolveBasesEntries(basesData, allFiles, view, selfContext, linkUnivers
       _fileLookup: fileLookup
     };
     for (const name of formulaOrder) {
-      context.formula[name] = evaluate(formulas[name], context);
+      context.formula[name] = evaluate(formulas[name] ?? "", context);
     }
     if (!evaluateFilter(basesData.filters, context)) continue;
     if (view?.filters && !evaluateFilter(view.filters, context)) continue;
@@ -1014,5 +1015,5 @@ var BasesBody_default = ((opts) => {
 });
 
 export { BasesBody_default, ViewSelector, i18n, registerBuiltinViews, resolveBasesEntries };
-//# sourceMappingURL=chunk-GS4CU3UK.js.map
-//# sourceMappingURL=chunk-GS4CU3UK.js.map
+//# sourceMappingURL=chunk-QFUONLHD.js.map
+//# sourceMappingURL=chunk-QFUONLHD.js.map

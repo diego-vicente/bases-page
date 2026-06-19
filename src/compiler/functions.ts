@@ -87,7 +87,15 @@ function isFileValue(value: unknown): value is EvalContext["file"] {
   );
 }
 
+const WIKILINK_VALUE_RE = /^\[\[([^\]|#]+)(?:[#|][^\]]*)?\]\]$/;
+
 function resolveSelfName(value: unknown): string | null {
+  // `asLink()` yields a wikilink string (e.g. `[[Reference/Films/Foo]]`); match it
+  // by its target's basename so it compares equal to a name-only `[[Foo]]`.
+  if (typeof value === "string") {
+    const inner = value.match(WIKILINK_VALUE_RE)?.[1]?.trim();
+    return inner ? (inner.split("/").pop() ?? inner) : null;
+  }
   if (!isRecord(value)) return null;
   if (isRecord(value.file) && typeof (value.file as Record<string, unknown>).name === "string") {
     return (value.file as Record<string, unknown>).name as string;
@@ -99,6 +107,9 @@ function resolveSelfName(value: unknown): string | null {
 }
 
 function resolveSelfPath(value: unknown): string | null {
+  if (typeof value === "string") {
+    return value.match(WIKILINK_VALUE_RE)?.[1]?.trim() ?? null;
+  }
   if (!isRecord(value)) return null;
   if (isRecord(value.file) && typeof (value.file as Record<string, unknown>).path === "string") {
     return (value.file as Record<string, unknown>).path as string;
