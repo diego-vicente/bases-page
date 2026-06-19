@@ -32,6 +32,7 @@ export type EvalContext = {
     };
   };
   _lambdaValue?: unknown;
+  _lambdaAcc?: unknown;
   _fileLookup?: Map<string, EvalContext["file"]>;
 };
 
@@ -198,11 +199,20 @@ function resolveIdentifier(name: string, context: EvalContext): unknown {
   if (name === "file") return context.file;
   if (name === "formula") return context.formula;
   if (name === "value") return context._lambdaValue;
+  if (name === "acc") return context._lambdaAcc;
   return context.note[name];
 }
 
+const DATE_PARTS = new Set(["year", "month", "day", "hour", "minute", "second"]);
+
 function resolveMember(target: unknown, name: string): unknown {
   if (target === undefined || target === null) return undefined;
+  // Coerce a date-like string so `release_date.year` etc. work on frontmatter dates.
+  if (typeof target === "string" && DATE_PARTS.has(name)) {
+    const iso = /^\d{4}-\d{2}-\d{2}$/.test(target) ? `${target}T00:00:00` : target;
+    const d = new Date(iso);
+    if (!Number.isNaN(d.getTime())) return resolveMember(d, name);
+  }
   if (isDateValue(target)) {
     switch (name) {
       case "year":
@@ -311,6 +321,16 @@ function executeLazyMethod(
         const result = evaluateLambda(body, element, context);
         return Boolean(result);
       });
+    case "reduce": {
+      // reduce(<expr over acc+value>, <initial>): the body sees `value` (element)
+      // and `acc` (running result). The initial value is the (eager) 2nd arg.
+      const initProgram = argPrograms[1];
+      let acc = initProgram ? interpret(initProgram, context) : undefined;
+      for (const element of target) {
+        acc = interpret(body, { ...context, _lambdaValue: element, _lambdaAcc: acc });
+      }
+      return acc;
+    }
     default:
       return undefined;
   }

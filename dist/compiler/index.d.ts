@@ -7,7 +7,7 @@ type Span = {
     end: number;
 };
 
-type LiteralValue = string | number | boolean | null;
+type LiteralValue = string | number | boolean | null | RegExp;
 type UnaryOperator = "!" | "-";
 type BinaryOperator = "+" | "-" | "*" | "/" | "%" | "==" | "!=" | ">" | "<" | ">=" | "<=" | "&&" | "||";
 type BaseNode = {
@@ -133,6 +133,7 @@ type EvalContext = {
         };
     };
     _lambdaValue?: unknown;
+    _lambdaAcc?: unknown;
     _fileLookup?: Map<string, EvalContext["file"]>;
 };
 declare function resolvePropertyValue(path: string, context: EvalContext): unknown;

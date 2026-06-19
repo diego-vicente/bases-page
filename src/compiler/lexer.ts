@@ -35,6 +35,24 @@ function isIdentifierPart(ch: string): boolean {
   return isIdentifierStart(ch) || isDigit(ch);
 }
 
+// Token types that yield a value; a `/` directly after one of these is division,
+// not the start of a regex literal.
+const VALUE_TOKENS = new Set<TokenType>([
+  TokenType.Number,
+  TokenType.String,
+  TokenType.Regex,
+  TokenType.Identifier,
+  TokenType.True,
+  TokenType.False,
+  TokenType.Null,
+  TokenType.RightParen,
+  TokenType.RightBracket,
+]);
+
+function regexAllowed(prev: Token | undefined): boolean {
+  return !prev || !VALUE_TOKENS.has(prev.type);
+}
+
 class Lexer {
   private readonly input: string;
   private index = 0;
@@ -65,6 +83,14 @@ class Lexer {
 
       if (ch === '"' || ch === "'") {
         tokens.push(this.readString());
+        continue;
+      }
+
+      // `/` is a regex literal when it can't be a division operator — i.e. when the
+      // previous token doesn't produce a value (start of input, after an operator,
+      // `(`, `,`, `[`, etc.). Otherwise it's the Slash (division) operator.
+      if (ch === "/" && regexAllowed(tokens[tokens.length - 1])) {
+        tokens.push(this.readRegex());
         continue;
       }
 
@@ -135,6 +161,30 @@ class Lexer {
     }
 
     throw new CompilerError("Unterminated string literal", { start, end: this.index });
+  }
+
+  private readRegex(): Token {
+    const start = this.index;
+    this.advance(); // opening `/`
+    let inClass = false;
+    while (!this.isAtEnd()) {
+      const ch = this.advance();
+      if (ch === "\\") {
+        // Escapes (`\(`, `\d`, `\/`, …) consume the next char literally.
+        if (!this.isAtEnd()) this.advance();
+        continue;
+      }
+      if (ch === "[") {
+        inClass = true;
+      } else if (ch === "]") {
+        inClass = false;
+      } else if (ch === "/" && !inClass) {
+        while (isAlpha(this.peek())) this.advance(); // trailing flags (g, i, …)
+        const value = this.input.slice(start, this.index);
+        return this.makeToken(TokenType.Regex, value, start, this.index);
+      }
+    }
+    throw new CompilerError("Unterminated regex literal", { start, end: this.index });
   }
 
   private readSymbol(): Token {

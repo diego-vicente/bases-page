@@ -47,6 +47,19 @@ class Parser {
       }
       case TokenType.String:
         return { type: "Literal", value: token.value, span: token.span };
+      case TokenType.Regex: {
+        // token.value is the raw literal `/pattern/flags`.
+        const lastSlash = token.value.lastIndexOf("/");
+        const pattern = token.value.slice(1, lastSlash);
+        const flags = token.value.slice(lastSlash + 1);
+        let regex: RegExp;
+        try {
+          regex = new RegExp(pattern, flags);
+        } catch {
+          throw new CompilerError("Invalid regex literal", token.span);
+        }
+        return { type: "Literal", value: regex, span: token.span };
+      }
       case TokenType.True:
         return { type: "Literal", value: true, span: token.span };
       case TokenType.False:

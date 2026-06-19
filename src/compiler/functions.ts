@@ -426,9 +426,12 @@ registerMethodFunction("string", "trim", (target) => toStringValue(target).trim(
 
 registerMethodFunction("string", "replace", (target, [search, replacement]) => {
   const source = toStringValue(target);
+  const replacementText = toStringValue(replacement);
+  if (search instanceof RegExp) {
+    return source.replace(search, replacementText);
+  }
   const needle = toStringValue(search);
   if (!needle) return source;
-  const replacementText = toStringValue(replacement);
   return source.split(needle).join(replacementText);
 });
 
@@ -666,6 +669,7 @@ registerMethodFunction("string", "containsAny", (target, args) => {
 
 registerMethodFunction("string", "split", (target, [separator]) => {
   const value = toStringValue(target);
+  if (separator instanceof RegExp) return value.split(separator);
   const sep = toStringValue(separator);
   return value.split(sep);
 });

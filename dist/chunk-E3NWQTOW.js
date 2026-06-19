@@ -15,7 +15,7 @@ var CompilerError = class extends Error {
 };
 
 // src/compiler/compiler.ts
-var LAZY_METHODS = /* @__PURE__ */ new Set(["filter", "map", "find", "some", "every", "flatMap"]);
+var LAZY_METHODS = /* @__PURE__ */ new Set(["filter", "map", "find", "some", "every", "flatMap", "reduce"]);
 var Compiler = class _Compiler {
   instructions = [];
   compile(expression) {
@@ -243,6 +243,20 @@ function isIdentifierStart(ch) {
 function isIdentifierPart(ch) {
   return isIdentifierStart(ch) || isDigit(ch);
 }
+var VALUE_TOKENS = /* @__PURE__ */ new Set([
+  "Number" /* Number */,
+  "String" /* String */,
+  "Regex" /* Regex */,
+  "Identifier" /* Identifier */,
+  "True" /* True */,
+  "False" /* False */,
+  "Null" /* Null */,
+  "RightParen" /* RightParen */,
+  "RightBracket" /* RightBracket */
+]);
+function regexAllowed(prev) {
+  return !prev || !VALUE_TOKENS.has(prev.type);
+}
 var Lexer = class {
   input;
   index = 0;
@@ -267,6 +281,10 @@ var Lexer = class {
       }
       if (ch === '"' || ch === "'") {
         tokens.push(this.readString());
+        continue;
+      }
+      if (ch === "/" && regexAllowed(tokens[tokens.length - 1])) {
+        tokens.push(this.readRegex());
         continue;
       }
       tokens.push(this.readSymbol());
@@ -322,6 +340,28 @@ var Lexer = class {
       value += ch;
     }
     throw new CompilerError("Unterminated string literal", { start, end: this.index });
+  }
+  readRegex() {
+    const start = this.index;
+    this.advance();
+    let inClass = false;
+    while (!this.isAtEnd()) {
+      const ch = this.advance();
+      if (ch === "\\") {
+        if (!this.isAtEnd()) this.advance();
+        continue;
+      }
+      if (ch === "[") {
+        inClass = true;
+      } else if (ch === "]") {
+        inClass = false;
+      } else if (ch === "/" && !inClass) {
+        while (isAlpha(this.peek())) this.advance();
+        const value = this.input.slice(start, this.index);
+        return this.makeToken("Regex" /* Regex */, value, start, this.index);
+      }
+    }
+    throw new CompilerError("Unterminated regex literal", { start, end: this.index });
   }
   readSymbol() {
     const start = this.index;
@@ -439,6 +479,18 @@ var Parser = class {
       }
       case "String" /* String */:
         return { type: "Literal", value: token.value, span: token.span };
+      case "Regex" /* Regex */: {
+        const lastSlash = token.value.lastIndexOf("/");
+        const pattern = token.value.slice(1, lastSlash);
+        const flags = token.value.slice(lastSlash + 1);
+        let regex2;
+        try {
+          regex2 = new RegExp(pattern, flags);
+        } catch {
+          throw new CompilerError("Invalid regex literal", token.span);
+        }
+        return { type: "Literal", value: regex2, span: token.span };
+      }
       case "True" /* True */:
         return { type: "Literal", value: true, span: token.span };
       case "False" /* False */:
@@ -1176,9 +1228,12 @@ registerMethodFunction("string", "upper", (target) => toStringValue(target).toUp
 registerMethodFunction("string", "trim", (target) => toStringValue(target).trim());
 registerMethodFunction("string", "replace", (target, [search, replacement]) => {
   const source = toStringValue(target);
+  const replacementText = toStringValue(replacement);
+  if (search instanceof RegExp) {
+    return source.replace(search, replacementText);
+  }
   const needle = toStringValue(search);
   if (!needle) return source;
-  const replacementText = toStringValue(replacement);
   return source.split(needle).join(replacementText);
 });
 registerMethodFunction("string", "slice", (target, [start, end]) => {
@@ -1392,6 +1447,7 @@ registerMethodFunction("string", "containsAny", (target, args) => {
 });
 registerMethodFunction("string", "split", (target, [separator]) => {
   const value = toStringValue(target);
+  if (separator instanceof RegExp) return value.split(separator);
   const sep = toStringValue(separator);
   return value.split(sep);
 });
@@ -1652,10 +1708,17 @@ function resolveIdentifier(name, context) {
   if (name === "file") return context.file;
   if (name === "formula") return context.formula;
   if (name === "value") return context._lambdaValue;
+  if (name === "acc") return context._lambdaAcc;
   return context.note[name];
 }
+var DATE_PARTS = /* @__PURE__ */ new Set(["year", "month", "day", "hour", "minute", "second"]);
 function resolveMember(target, name) {
   if (target === void 0 || target === null) return void 0;
+  if (typeof target === "string" && DATE_PARTS.has(name)) {
+    const iso = /^\d{4}-\d{2}-\d{2}$/.test(target) ? `${target}T00:00:00` : target;
+    const d2 = new Date(iso);
+    if (!Number.isNaN(d2.getTime())) return resolveMember(d2, name);
+  }
   if (isDateValue2(target)) {
     switch (name) {
       case "year":
@@ -1750,6 +1813,14 @@ function executeLazyMethod(name, target, argPrograms, context) {
         const result = evaluateLambda(body, element, context);
         return Boolean(result);
       });
+    case "reduce": {
+      const initProgram = argPrograms[1];
+      let acc = initProgram ? interpret(initProgram, context) : void 0;
+      for (const element of target) {
+        acc = interpret(body, { ...context, _lambdaValue: element, _lambdaAcc: acc });
+      }
+      return acc;
+    }
     default:
       return void 0;
   }
@@ -1929,5 +2000,5 @@ function evaluateFilter(node, context) {
 }
 
 export { S, compile, evaluate, evaluateFilter, k, l, resolvePropertyValue, simplifySlug, slugifyFilePath, slugifyPath, transformLink, u2 as u };
-//# sourceMappingURL=chunk-J5MPKHZZ.js.map
-//# sourceMappingURL=chunk-J5MPKHZZ.js.map
+//# sourceMappingURL=chunk-E3NWQTOW.js.map
+//# sourceMappingURL=chunk-E3NWQTOW.js.map
