@@ -1493,7 +1493,12 @@ registerMethodFunction("list", "contains", (target, [needle]) => {
   if (!Array.isArray(target)) return false;
   if (target.includes(needle)) return true;
   const name = resolveSelfName(needle);
-  return name ? listContainsName(target, name, resolveSelfPath(needle)) : false;
+  if (name) return listContainsName(target, name, resolveSelfPath(needle));
+  if (typeof needle === "string") {
+    const lower = needle.toLowerCase();
+    return target.some((t2) => typeof t2 === "string" && t2.toLowerCase() === lower);
+  }
+  return false;
 });
 registerMethodFunction("list", "containsAll", (target, args) => {
   if (!Array.isArray(target)) return false;
@@ -2014,5 +2019,5 @@ function evaluateFilter(node, context) {
 }
 
 export { S, compile, evaluate, evaluateFilter, k, l, resolvePropertyValue, simplifySlug, slugifyFilePath, slugifyPath, transformLink, u2 as u };
-//# sourceMappingURL=chunk-G6APKVME.js.map
-//# sourceMappingURL=chunk-G6APKVME.js.map
+//# sourceMappingURL=chunk-UBYDMBOX.js.map
+//# sourceMappingURL=chunk-UBYDMBOX.js.map

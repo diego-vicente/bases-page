@@ -1,6 +1,6 @@
 import { createRequire } from 'module';
 import { viewRegistry, registerCustomViews } from './chunk-2AUMER56.js';
-import { u, simplifySlug, evaluate, evaluateFilter, S, transformLink, resolvePropertyValue, slugifyPath } from './chunk-G6APKVME.js';
+import { u, simplifySlug, evaluate, evaluateFilter, S, transformLink, resolvePropertyValue, slugifyPath } from './chunk-UBYDMBOX.js';
 
 createRequire(import.meta.url);
 
@@ -1019,5 +1019,5 @@ var BasesBody_default = ((opts) => {
 });
 
 export { BasesBody_default, ViewSelector, i18n, registerBuiltinViews, resolveBasesEntries };
-//# sourceMappingURL=chunk-5MZOORQL.js.map
-//# sourceMappingURL=chunk-5MZOORQL.js.map
+//# sourceMappingURL=chunk-FIZCEA5W.js.map
+//# sourceMappingURL=chunk-FIZCEA5W.js.map

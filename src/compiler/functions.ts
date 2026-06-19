@@ -733,7 +733,16 @@ registerMethodFunction("list", "contains", (target, [needle]) => {
   if (!Array.isArray(target)) return false;
   if (target.includes(needle)) return true;
   const name = resolveSelfName(needle);
-  return name ? listContainsName(target, name, resolveSelfPath(needle)) : false;
+  if (name) return listContainsName(target, name, resolveSelfPath(needle));
+  // Case-insensitive fallback for a plain-string needle. Quartz lowercases tags
+  // (`2026-Q1` → `2026-q1`) while Obsidian preserves case, so a tag filter like
+  // `file.tags.contains("2026-Q1")` must still match. Consistent with `hasTag`,
+  // which is already case-insensitive. The link/`asLink()` path above is unaffected.
+  if (typeof needle === "string") {
+    const lower = needle.toLowerCase();
+    return target.some((t) => typeof t === "string" && t.toLowerCase() === lower);
+  }
+  return false;
 });
 
 registerMethodFunction("list", "containsAll", (target, args) => {
