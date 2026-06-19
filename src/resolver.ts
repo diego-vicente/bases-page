@@ -130,15 +130,29 @@ function orderFormulas(formulas: Record<string, string>): string[] {
   return ordered;
 }
 
-function compareSort(a: unknown, b: unknown): number {
-  if (a === b) return 0;
-  if (a === undefined || a === null) return 1;
-  if (b === undefined || b === null) return -1;
+// A value Obsidian treats as "empty" for sorting — always parked last, in both
+// directions (see sortEntries).
+function isEmptySortValue(value: unknown): boolean {
+  return (
+    value === undefined ||
+    value === null ||
+    value === "" ||
+    (Array.isArray(value) && value.length === 0)
+  );
+}
+
+// Compares two NON-empty values the way Obsidian does: numbers numerically,
+// date-like strings chronologically, otherwise a natural (numeric-aware),
+// case-insensitive string compare ("file2" before "file10", "a" == "A" tier).
+function compareSortValues(a: unknown, b: unknown): number {
   if (typeof a === "number" && typeof b === "number") return a - b;
   const dateA = typeof a === "string" ? Date.parse(a) : NaN;
   const dateB = typeof b === "string" ? Date.parse(b) : NaN;
   if (!Number.isNaN(dateA) && !Number.isNaN(dateB)) return dateA - dateB;
-  return String(a).localeCompare(String(b));
+  return String(a).localeCompare(String(b), undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
 }
 
 function buildSortKeys(view?: BasesView): SortEntry[] {
@@ -156,23 +170,28 @@ function sortEntries(entries: BasesEntry[], view?: BasesView): BasesEntry[] {
   const sortKeys = buildSortKeys(view);
   if (sortKeys.length === 0) return entries;
 
+  const valueFor = (entry: BasesEntry, property: string): unknown =>
+    resolvePropertyValue(property, {
+      note: entry.properties,
+      file: entry.fileProperties,
+      formula: entry.formulaValues,
+    });
+
   return [...entries].sort((left, right) => {
     for (const key of sortKeys) {
-      const sign = key.direction === "DESC" ? -1 : 1;
-      const leftValue = resolvePropertyValue(key.property, {
-        note: left.properties,
-        file: left.fileProperties,
-        formula: left.formulaValues,
-      });
-      const rightValue = resolvePropertyValue(key.property, {
-        note: right.properties,
-        file: right.fileProperties,
-        formula: right.formulaValues,
-      });
-      const cmp = compareSort(leftValue, rightValue);
-      if (cmp !== 0) return sign * cmp;
+      const leftValue = valueFor(left, key.property);
+      const rightValue = valueFor(right, key.property);
+      const leftEmpty = isEmptySortValue(leftValue);
+      const rightEmpty = isEmptySortValue(rightValue);
+      // Empties always sort last, independent of ASC/DESC (Obsidian behavior).
+      if (leftEmpty && rightEmpty) continue;
+      if (leftEmpty) return 1;
+      if (rightEmpty) return -1;
+      const cmp = compareSortValues(leftValue, rightValue);
+      if (cmp !== 0) return key.direction === "DESC" ? -cmp : cmp;
     }
-    return 0;
+    // Tiebreak on file name ascending — Obsidian's baseline order.
+    return compareSortValues(left.fileProperties?.name, right.fileProperties?.name);
   });
 }
 

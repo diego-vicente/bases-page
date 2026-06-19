@@ -1,6 +1,6 @@
 import { createRequire } from 'module';
 import { viewRegistry, registerCustomViews } from './chunk-2AUMER56.js';
-import { u, simplifySlug, evaluate, evaluateFilter, resolvePropertyValue, S, transformLink, slugifyPath } from './chunk-IIEGEXWU.js';
+import { u, simplifySlug, evaluate, evaluateFilter, S, transformLink, resolvePropertyValue, slugifyPath } from './chunk-IIEGEXWU.js';
 
 createRequire(import.meta.url);
 
@@ -116,15 +116,18 @@ function orderFormulas(formulas) {
   for (const name of names) visit(name);
   return ordered;
 }
-function compareSort(a, b) {
-  if (a === b) return 0;
-  if (a === void 0 || a === null) return 1;
-  if (b === void 0 || b === null) return -1;
+function isEmptySortValue(value) {
+  return value === void 0 || value === null || value === "" || Array.isArray(value) && value.length === 0;
+}
+function compareSortValues(a, b) {
   if (typeof a === "number" && typeof b === "number") return a - b;
   const dateA = typeof a === "string" ? Date.parse(a) : NaN;
   const dateB = typeof b === "string" ? Date.parse(b) : NaN;
   if (!Number.isNaN(dateA) && !Number.isNaN(dateB)) return dateA - dateB;
-  return String(a).localeCompare(String(b));
+  return String(a).localeCompare(String(b), void 0, {
+    numeric: true,
+    sensitivity: "base"
+  });
 }
 function buildSortKeys(view) {
   if (view?.sort && view.sort.length > 0) return view.sort;
@@ -139,23 +142,24 @@ function buildSortKeys(view) {
 function sortEntries(entries, view) {
   const sortKeys = buildSortKeys(view);
   if (sortKeys.length === 0) return entries;
+  const valueFor = (entry, property) => resolvePropertyValue(property, {
+    note: entry.properties,
+    file: entry.fileProperties,
+    formula: entry.formulaValues
+  });
   return [...entries].sort((left, right) => {
     for (const key of sortKeys) {
-      const sign = key.direction === "DESC" ? -1 : 1;
-      const leftValue = resolvePropertyValue(key.property, {
-        note: left.properties,
-        file: left.fileProperties,
-        formula: left.formulaValues
-      });
-      const rightValue = resolvePropertyValue(key.property, {
-        note: right.properties,
-        file: right.fileProperties,
-        formula: right.formulaValues
-      });
-      const cmp = compareSort(leftValue, rightValue);
-      if (cmp !== 0) return sign * cmp;
+      const leftValue = valueFor(left, key.property);
+      const rightValue = valueFor(right, key.property);
+      const leftEmpty = isEmptySortValue(leftValue);
+      const rightEmpty = isEmptySortValue(rightValue);
+      if (leftEmpty && rightEmpty) continue;
+      if (leftEmpty) return 1;
+      if (rightEmpty) return -1;
+      const cmp = compareSortValues(leftValue, rightValue);
+      if (cmp !== 0) return key.direction === "DESC" ? -cmp : cmp;
     }
-    return 0;
+    return compareSortValues(left.fileProperties?.name, right.fileProperties?.name);
   });
 }
 function resolveBasesEntries(basesData, allFiles, view, selfContext, linkUniverse) {
@@ -1015,5 +1019,5 @@ var BasesBody_default = ((opts) => {
 });
 
 export { BasesBody_default, ViewSelector, i18n, registerBuiltinViews, resolveBasesEntries };
-//# sourceMappingURL=chunk-QFUONLHD.js.map
-//# sourceMappingURL=chunk-QFUONLHD.js.map
+//# sourceMappingURL=chunk-RLWDJDE6.js.map
+//# sourceMappingURL=chunk-RLWDJDE6.js.map
