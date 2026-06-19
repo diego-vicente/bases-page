@@ -559,9 +559,9 @@ var CardsView = ({
       const imageValue = imageProperty ? resolveEntryPropertyValue(imageProperty, entry) : void 0;
       const rawImage = imageValue ? String(imageValue) : "";
       const { src: imageSrc, isColor } = resolveImageSrc(rawImage, imageOpts);
-      const imageAspect = typeof aspectRatio === "number" && aspectRatio > 0 ? { aspectRatio: String(aspectRatio) } : void 0;
+      const imageAspect = typeof aspectRatio === "number" && aspectRatio > 0 ? { aspectRatio: String(1 / aspectRatio) } : void 0;
       const href = transformLink(slug, entry.slug, transformOpts);
-      return /* @__PURE__ */ u("a", { href, class: "internal internal-link bases-card", "data-slug": entry.slug, children: [
+      return /* @__PURE__ */ u("div", { class: "bases-card", children: [
         imageSrc && !isColor && /* @__PURE__ */ u("div", { class: "bases-card-image", style: imageAspect, children: /* @__PURE__ */ u(
           "img",
           {
@@ -579,7 +579,15 @@ var CardsView = ({
           }
         ),
         /* @__PURE__ */ u("div", { class: "bases-card-body", children: [
-          /* @__PURE__ */ u("span", { class: "bases-card-title", children: entry.title }),
+          /* @__PURE__ */ u(
+            "a",
+            {
+              href,
+              class: "bases-card-title internal internal-link",
+              "data-slug": entry.slug,
+              children: entry.title
+            }
+          ),
           /* @__PURE__ */ u("div", { class: "bases-card-meta", children: cardMetaColumns.map((column) => {
             const value = resolveEntryPropertyValue(column, entry);
             if (isEmptyValue(value)) return null;
@@ -967,5 +975,5 @@ var BasesBody_default = ((opts) => {
 });
 
 export { BasesBody_default, ViewSelector, i18n, registerBuiltinViews, resolveBasesEntries };
-//# sourceMappingURL=chunk-S55433EV.js.map
-//# sourceMappingURL=chunk-S55433EV.js.map
+//# sourceMappingURL=chunk-R3LU5OEJ.js.map
+//# sourceMappingURL=chunk-R3LU5OEJ.js.map

@@ -90,13 +90,18 @@ const CardsView: ViewRenderer = ({
             : undefined;
           const rawImage = imageValue ? String(imageValue) : "";
           const { src: imageSrc, isColor } = resolveImageSrc(rawImage, imageOpts);
+          // Obsidian's imageAspectRatio is height:width (posters use > 1), but the
+          // CSS aspect-ratio property is width:height — so invert it.
           const imageAspect =
             typeof aspectRatio === "number" && aspectRatio > 0
-              ? { aspectRatio: String(aspectRatio) }
+              ? { aspectRatio: String(1 / aspectRatio) }
               : undefined;
           const href = transformLink(slug as FullSlug, entry.slug, transformOpts);
+          // The card is a <div>, NOT an <a>: cell values (e.g. Directors) are
+          // themselves links, and nesting <a> inside <a> is invalid HTML — browsers
+          // auto-close the outer anchor and shatter the card. The title is the link.
           return (
-            <a href={href} class="internal internal-link bases-card" data-slug={entry.slug}>
+            <div class="bases-card">
               {imageSrc && !isColor && (
                 <div class="bases-card-image" style={imageAspect}>
                   <img
@@ -114,7 +119,13 @@ const CardsView: ViewRenderer = ({
                 />
               )}
               <div class="bases-card-body">
-                <span class="bases-card-title">{entry.title}</span>
+                <a
+                  href={href}
+                  class="bases-card-title internal internal-link"
+                  data-slug={entry.slug}
+                >
+                  {entry.title}
+                </a>
                 <div class="bases-card-meta">
                   {cardMetaColumns.map((column) => {
                     const value = resolveEntryPropertyValue(column, entry);
@@ -128,7 +139,7 @@ const CardsView: ViewRenderer = ({
                   })}
                 </div>
               </div>
-            </a>
+            </div>
           );
         })}
       </div>
