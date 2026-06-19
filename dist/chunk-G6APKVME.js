@@ -945,11 +945,17 @@ function isFileValue(value) {
   if (!isRecord(value)) return false;
   return typeof value.name === "string" && typeof value.path === "string" && typeof value.folder === "string" && typeof value.ext === "string" && Array.isArray(value.tags) && Array.isArray(value.links) && typeof value.basename === "string";
 }
-var WIKILINK_VALUE_RE = /^\[\[([^\]|#]+)(?:[#|][^\]]*)?\]\]$/;
+var WIKILINK_VALUE_RE = /^\[\[((?:[^\]]|\](?!\]))+)\]\]$/;
+function parseWikilinkTarget(value) {
+  const inner = value.match(WIKILINK_VALUE_RE)?.[1];
+  if (inner === void 0) return null;
+  const target = inner.split("|")[0]?.split("#")[0]?.trim();
+  return target ? target : null;
+}
 function resolveSelfName(value) {
   if (typeof value === "string") {
-    const inner = value.match(WIKILINK_VALUE_RE)?.[1]?.trim();
-    return inner ? inner.split("/").pop() ?? inner : null;
+    const target = parseWikilinkTarget(value);
+    return target ? target.split("/").pop() ?? target : null;
   }
   if (!isRecord(value)) return null;
   if (isRecord(value.file) && typeof value.file.name === "string") {
@@ -962,7 +968,7 @@ function resolveSelfName(value) {
 }
 function resolveSelfPath(value) {
   if (typeof value === "string") {
-    return value.match(WIKILINK_VALUE_RE)?.[1]?.trim() ?? null;
+    return parseWikilinkTarget(value);
   }
   if (!isRecord(value)) return null;
   if (isRecord(value.file) && typeof value.file.path === "string") {
@@ -978,9 +984,9 @@ function listContainsName(list, name, selfPath) {
   const selfSlug = selfPath ? slugifyFilePath(selfPath) : null;
   return list.some((item) => {
     if (typeof item !== "string") return false;
-    const match = item.match(/^\[\[([^\]|]+)(?:\|[^\]]+)?\]\]$/);
-    if (match?.[1]) {
-      return match[1] === name || match[1].endsWith(`/${name}`);
+    const linkTarget = parseWikilinkTarget(item);
+    if (linkTarget !== null) {
+      return linkTarget === name || linkTarget.endsWith(`/${name}`);
     }
     if (item === name) return true;
     if (item === slugName || item.endsWith(`/${slugName}`)) return true;
@@ -2008,5 +2014,5 @@ function evaluateFilter(node, context) {
 }
 
 export { S, compile, evaluate, evaluateFilter, k, l, resolvePropertyValue, simplifySlug, slugifyFilePath, slugifyPath, transformLink, u2 as u };
-//# sourceMappingURL=chunk-IIEGEXWU.js.map
-//# sourceMappingURL=chunk-IIEGEXWU.js.map
+//# sourceMappingURL=chunk-G6APKVME.js.map
+//# sourceMappingURL=chunk-G6APKVME.js.map

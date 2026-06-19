@@ -87,14 +87,24 @@ function isFileValue(value: unknown): value is EvalContext["file"] {
   );
 }
 
-const WIKILINK_VALUE_RE = /^\[\[([^\]|#]+)(?:[#|][^\]]*)?\]\]$/;
+// A wikilink target may itself contain a single `]` (e.g. a title like "[REC]³"),
+// just never `]]`. Match greedily up to the FINAL `]]`, then strip alias (`|`) and
+// heading (`#`) — which aren't part of the link target — in code.
+const WIKILINK_VALUE_RE = /^\[\[((?:[^\]]|\](?!\]))+)\]\]$/;
+
+function parseWikilinkTarget(value: string): string | null {
+  const inner = value.match(WIKILINK_VALUE_RE)?.[1];
+  if (inner === undefined) return null;
+  const target = inner.split("|")[0]?.split("#")[0]?.trim();
+  return target ? target : null;
+}
 
 function resolveSelfName(value: unknown): string | null {
   // `asLink()` yields a wikilink string (e.g. `[[Reference/Films/Foo]]`); match it
   // by its target's basename so it compares equal to a name-only `[[Foo]]`.
   if (typeof value === "string") {
-    const inner = value.match(WIKILINK_VALUE_RE)?.[1]?.trim();
-    return inner ? (inner.split("/").pop() ?? inner) : null;
+    const target = parseWikilinkTarget(value);
+    return target ? (target.split("/").pop() ?? target) : null;
   }
   if (!isRecord(value)) return null;
   if (isRecord(value.file) && typeof (value.file as Record<string, unknown>).name === "string") {
@@ -108,7 +118,7 @@ function resolveSelfName(value: unknown): string | null {
 
 function resolveSelfPath(value: unknown): string | null {
   if (typeof value === "string") {
-    return value.match(WIKILINK_VALUE_RE)?.[1]?.trim() ?? null;
+    return parseWikilinkTarget(value);
   }
   if (!isRecord(value)) return null;
   if (isRecord(value.file) && typeof (value.file as Record<string, unknown>).path === "string") {
@@ -125,9 +135,9 @@ function listContainsName(list: unknown[], name: string, selfPath?: string | nul
   const selfSlug = selfPath ? slugifyFilePath(selfPath as FilePath) : null;
   return list.some((item) => {
     if (typeof item !== "string") return false;
-    const match = item.match(/^\[\[([^\]|]+)(?:\|[^\]]+)?\]\]$/);
-    if (match?.[1]) {
-      return match[1] === name || match[1].endsWith(`/${name}`);
+    const linkTarget = parseWikilinkTarget(item);
+    if (linkTarget !== null) {
+      return linkTarget === name || linkTarget.endsWith(`/${name}`);
     }
     if (item === name) return true;
     if (item === slugName || item.endsWith(`/${slugName}`)) return true;

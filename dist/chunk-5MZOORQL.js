@@ -1,6 +1,6 @@
 import { createRequire } from 'module';
 import { viewRegistry, registerCustomViews } from './chunk-2AUMER56.js';
-import { u, simplifySlug, evaluate, evaluateFilter, S, transformLink, resolvePropertyValue, slugifyPath } from './chunk-IIEGEXWU.js';
+import { u, simplifySlug, evaluate, evaluateFilter, S, transformLink, resolvePropertyValue, slugifyPath } from './chunk-G6APKVME.js';
 
 createRequire(import.meta.url);
 
@@ -23,7 +23,7 @@ function normalizeStringArray(values) {
   if (!Array.isArray(values)) return [];
   return values.filter((value) => typeof value === "string");
 }
-var WIKILINK_RE = /\[\[([^\]]+?)\]\]/g;
+var WIKILINK_RE = /\[\[((?:[^\]]|\](?!\]))+?)\]\]/g;
 function extractFrontmatterWikilinks(value, out) {
   if (typeof value === "string") {
     for (const match of value.matchAll(WIKILINK_RE)) {
@@ -1019,5 +1019,5 @@ var BasesBody_default = ((opts) => {
 });
 
 export { BasesBody_default, ViewSelector, i18n, registerBuiltinViews, resolveBasesEntries };
-//# sourceMappingURL=chunk-RLWDJDE6.js.map
-//# sourceMappingURL=chunk-RLWDJDE6.js.map
+//# sourceMappingURL=chunk-5MZOORQL.js.map
+//# sourceMappingURL=chunk-5MZOORQL.js.map

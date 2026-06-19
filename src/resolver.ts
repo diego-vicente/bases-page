@@ -8,7 +8,8 @@ function normalizeStringArray(values: unknown): string[] {
   return values.filter((value): value is string => typeof value === "string");
 }
 
-const WIKILINK_RE = /\[\[([^\]]+?)\]\]/g;
+// Inner may contain a single `]` (titles like "[REC]³"), never `]]`.
+const WIKILINK_RE = /\[\[((?:[^\]]|\](?!\]))+?)\]\]/g;
 
 // Collects `[[…]]` targets (alias/heading stripped) from any frontmatter value —
 // a string, or an array of strings. Obsidian counts frontmatter wikilinks as
