@@ -18380,7 +18380,7 @@ var BasesPage = (opts) => ({
       const ext = dotIndex >= 0 ? filePath.slice(dotIndex + 1) : "";
       const isFolderIndex = baseName === "index" && folder !== "";
       const slug = slugifyFilePath(
-        isFolderIndex ? `${fileWithoutExt}.md` : filePath
+        `${fileWithoutExt}.md`
       );
       const title = isFolderIndex ? folder.split("/").pop() ?? baseName : baseName;
       const basesSelfContext = {

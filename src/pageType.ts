@@ -70,8 +70,13 @@ export const BasesPage: QuartzPageTypePlugin<BasesPageOptions> = (opts) => ({
       // A folder's `index.base` IS that folder's index page: it takes the folder's
       // slug and is titled by the folder, overriding the default folder listing.
       const isFolderIndex = baseName === "index" && folder !== "";
+      // Slugify as if the base were a note (`.base` → dropped), so a standalone
+      // `Places.base` becomes `places`, not `places.base`. A `.base` slug ends in a
+      // file extension, which static hosts serve verbatim (no `.html` fallback) —
+      // so `[[Places]]` links 404 in production. Folder-index bases were already
+      // clean; this extends the same treatment to standalone bases.
       const slug = slugifyFilePath(
-        (isFolderIndex ? `${fileWithoutExt}.md` : filePath) as unknown as FilePath,
+        `${fileWithoutExt}.md` as unknown as FilePath,
       ) as unknown as FullSlug;
       const title = isFolderIndex ? (folder.split("/").pop() ?? baseName) : baseName;
 
