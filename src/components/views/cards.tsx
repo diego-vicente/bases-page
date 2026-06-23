@@ -8,6 +8,7 @@ import {
   resolveEntryPropertyValue,
 } from "../shared/cell";
 import { transformLink } from "@quartz-community/utils";
+import { safeTransformLink } from "../shared/links";
 
 function formatMessage(template: string, values: Record<string, string | number>): string {
   return Object.entries(values).reduce(
@@ -38,11 +39,11 @@ export function resolveImageSrc(
   const wikiMatch = WIKILINK_RE.exec(raw);
   if (wikiMatch?.[1]) {
     const target = wikiMatch[1].trim();
-    const resolved = transformLink(opts.slug as FullSlug, target, {
+    const resolved = safeTransformLink(opts.slug as FullSlug, target, {
       strategy: opts.linkResolution,
       allSlugs: opts.allSlugs as FullSlug[],
     });
-    return { src: String(resolved), isColor: false };
+    return { src: resolved, isColor: false };
   }
 
   return { src: raw, isColor: false };

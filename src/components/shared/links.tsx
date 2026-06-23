@@ -13,6 +13,25 @@ type RenderCtx = {
   linkResolution: "absolute" | "relative" | "shortest";
 };
 
+// `transformLink` calls `decodeURI` internally, which throws "URI malformed" on a
+// literal `%` in the target (e.g. a note titled "90% of My Skills"). Don't let one
+// bad title crash the whole build — retry with `%` escaped, then fall back to "#".
+export function safeTransformLink(
+  from: FullSlug,
+  target: string,
+  opts: Parameters<typeof transformLink>[2],
+): string {
+  try {
+    return String(transformLink(from, target, opts));
+  } catch {
+    try {
+      return String(transformLink(from, target.replace(/%/g, "%25"), opts));
+    } catch {
+      return "#";
+    }
+  }
+}
+
 export function renderTextWithLinks(text: string, ctx: RenderCtx): ComponentChild[] {
   const segments: { start: number; end: number; node: ComponentChild }[] = [];
   const transformOpts = {
@@ -22,7 +41,7 @@ export function renderTextWithLinks(text: string, ctx: RenderCtx): ComponentChil
   for (const match of text.matchAll(WIKILINK_RE)) {
     const target = match[1] ?? "";
     const display = match[2] ?? target;
-    const href = transformLink(ctx.slug as FullSlug, target, transformOpts);
+    const href = safeTransformLink(ctx.slug as FullSlug, target, transformOpts);
     segments.push({
       start: match.index ?? 0,
       end: (match.index ?? 0) + match[0].length,
@@ -44,7 +63,7 @@ export function renderTextWithLinks(text: string, ctx: RenderCtx): ComponentChil
     const isExternal = href.startsWith("http://") || href.startsWith("https://");
     const resolvedHref = isExternal
       ? href
-      : String(transformLink(ctx.slug as FullSlug, href, transformOpts));
+      : safeTransformLink(ctx.slug as FullSlug, href, transformOpts);
     segments.push({
       start,
       end,

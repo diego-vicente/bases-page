@@ -290,6 +290,17 @@ function i18n(locale) {
 var WIKILINK_RE2 = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
 var MDLINK_RE = /\[([^\]]*)\]\(([^)]+)\)/g;
 var URL_RE = /https?:\/\/[^\s<>]+/g;
+function safeTransformLink(from, target, opts) {
+  try {
+    return String(transformLink(from, target, opts));
+  } catch {
+    try {
+      return String(transformLink(from, target.replace(/%/g, "%25"), opts));
+    } catch {
+      return "#";
+    }
+  }
+}
 function renderTextWithLinks(text, ctx) {
   const segments = [];
   const transformOpts = {
@@ -299,7 +310,7 @@ function renderTextWithLinks(text, ctx) {
   for (const match of text.matchAll(WIKILINK_RE2)) {
     const target = match[1] ?? "";
     const display = match[2] ?? target;
-    const href = transformLink(ctx.slug, target, transformOpts);
+    const href = safeTransformLink(ctx.slug, target, transformOpts);
     segments.push({
       start: match.index ?? 0,
       end: (match.index ?? 0) + match[0].length,
@@ -314,7 +325,7 @@ function renderTextWithLinks(text, ctx) {
     const display = match[1] ?? "";
     const href = match[2] ?? "";
     const isExternal = href.startsWith("http://") || href.startsWith("https://");
-    const resolvedHref = isExternal ? href : String(transformLink(ctx.slug, href, transformOpts));
+    const resolvedHref = isExternal ? href : safeTransformLink(ctx.slug, href, transformOpts);
     segments.push({
       start,
       end,
@@ -392,7 +403,7 @@ function renderCellValue(value, ctx) {
   }
   if (typeof value === "object") {
     if (isFileValue(value)) {
-      const href = transformLink(
+      const href = safeTransformLink(
         ctx.slug,
         slugifyPath(value.path.replace(/\.md$/, "")),
         {
@@ -564,11 +575,11 @@ function resolveImageSrc(raw, opts) {
   const wikiMatch = WIKILINK_RE3.exec(raw);
   if (wikiMatch?.[1]) {
     const target = wikiMatch[1].trim();
-    const resolved = transformLink(opts.slug, target, {
+    const resolved = safeTransformLink(opts.slug, target, {
       strategy: opts.linkResolution,
       allSlugs: opts.allSlugs
     });
-    return { src: String(resolved), isColor: false };
+    return { src: resolved, isColor: false };
   }
   return { src: raw, isColor: false };
 }
@@ -1019,5 +1030,5 @@ var BasesBody_default = ((opts) => {
 });
 
 export { BasesBody_default, ViewSelector, i18n, registerBuiltinViews, resolveBasesEntries };
-//# sourceMappingURL=chunk-FIZCEA5W.js.map
-//# sourceMappingURL=chunk-FIZCEA5W.js.map
+//# sourceMappingURL=chunk-2CEZ6W7K.js.map
+//# sourceMappingURL=chunk-2CEZ6W7K.js.map

@@ -2,8 +2,8 @@ import type { ComponentChild } from "preact";
 import type { FullSlug } from "@quartz-community/types";
 
 import type { BasesData, BasesEntry, BasesView } from "../../types";
-import { renderTextWithLinks } from "./links";
-import { transformLink, slugifyPath } from "@quartz-community/utils";
+import { renderTextWithLinks, safeTransformLink } from "./links";
+import { slugifyPath } from "@quartz-community/utils";
 
 type RenderCtx = {
   slug: string;
@@ -66,7 +66,7 @@ export function renderCellValue(value: unknown, ctx: RenderCtx): ComponentChild 
 
   if (typeof value === "object") {
     if (isFileValue(value)) {
-      const href = transformLink(
+      const href = safeTransformLink(
         ctx.slug as FullSlug,
         slugifyPath(value.path.replace(/\.md$/, "")),
         {
