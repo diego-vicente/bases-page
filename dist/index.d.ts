@@ -1,9 +1,10 @@
-import { QuartzPageTypePlugin, QuartzTransformerPlugin } from '@quartz-community/types';
+import { QuartzPageTypePlugin, QuartzTransformerPlugin, QuartzPluginData } from '@quartz-community/types';
 export { PageGenerator, PageMatcher, QuartzComponent, QuartzComponentConstructor, QuartzComponentProps, QuartzPageTypePlugin, QuartzPageTypePluginInstance, QuartzTransformerPlugin, QuartzTransformerPluginInstance, TreeTransform, VirtualPage } from '@quartz-community/types';
-import { BasesPageOptions, BasesData } from './types.js';
-export { BasesEntry, BasesView, FilterNode, GroupBy, PropertyConfig, SortDirection, SummaryType, ViewRenderer, ViewRendererProps, ViewTypeRegistration } from './types.js';
+import { BasesPageOptions, BasesData, BasesView, BasesEntry } from './types.js';
+export { FilterNode, GroupBy, PropertyConfig, SortDirection, SummaryType, ViewRenderer, ViewRendererProps, ViewTypeRegistration } from './types.js';
 export { _ as BasesBody } from './BasesBody-B4CEJjEp.js';
 export { registerCustomViews, viewRegistry } from './registry.js';
+import { EvalContext } from './compiler/index.js';
 export { compile, evaluate, evaluateFilter, resolvePropertyValue } from './compiler/index.js';
 export { FullSlug, RelativeURL, TransformOptions, slugifyPath, transformLink } from '@quartz-community/utils';
 import 'preact';
@@ -30,4 +31,11 @@ declare module "vfile" {
     }
 }
 
-export { BasesData, BasesPage, BasesPageOptions, BasesTransformer };
+declare function resolveBasesEntries(basesData: BasesData, allFiles: QuartzPluginData[], view?: BasesView, selfContext?: EvalContext["self"], linkUniverse?: QuartzPluginData[]): {
+    entries: BasesEntry[];
+    total: number;
+};
+
+declare function parseBasesData(raw: string): BasesData | null;
+
+export { BasesData, BasesEntry, BasesPage, BasesPageOptions, BasesTransformer, BasesView, parseBasesData, resolveBasesEntries };

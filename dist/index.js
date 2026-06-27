@@ -1,6 +1,6 @@
 import { createRequire } from 'module';
-import { BasesBody_default, resolveBasesEntries, registerBuiltinViews, i18n, ViewSelector } from './chunk-2CEZ6W7K.js';
-export { BasesBody_default as BasesBody } from './chunk-2CEZ6W7K.js';
+import { BasesBody_default, resolveBasesEntries, registerBuiltinViews, i18n, ViewSelector } from './chunk-RHCM4RX3.js';
+export { BasesBody_default as BasesBody, resolveBasesEntries } from './chunk-RHCM4RX3.js';
 import { registerCustomViews, viewRegistry } from './chunk-2AUMER56.js';
 export { registerCustomViews, viewRegistry } from './chunk-2AUMER56.js';
 import { slugifyFilePath, k, S, l } from './chunk-UBYDMBOX.js';
@@ -18724,6 +18724,6 @@ function buildBaseFileLookup(ctx) {
   return lookup;
 }
 
-export { BasesPage, BasesTransformer };
+export { BasesPage, BasesTransformer, parseBasesData };
 //# sourceMappingURL=index.js.map
 //# sourceMappingURL=index.js.map

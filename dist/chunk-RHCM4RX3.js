@@ -1,22 +1,8 @@
 import { createRequire } from 'module';
 import { viewRegistry, registerCustomViews } from './chunk-2AUMER56.js';
-import { u, simplifySlug, evaluate, evaluateFilter, S, transformLink, resolvePropertyValue, slugifyPath } from './chunk-UBYDMBOX.js';
+import { simplifySlug, evaluate, evaluateFilter, u, S, transformLink, resolvePropertyValue, slugifyPath } from './chunk-UBYDMBOX.js';
 
 createRequire(import.meta.url);
-
-// src/components/ViewSelector.tsx
-function ViewSelector({ views, activeIndex }) {
-  if (views.length <= 1) return null;
-  return /* @__PURE__ */ u("div", { class: "bases-view-tabs", role: "tablist", children: views.map((view, index) => /* @__PURE__ */ u(
-    "button",
-    {
-      type: "button",
-      class: index === activeIndex ? "is-active" : "",
-      "data-view-index": index,
-      children: view.name ?? view.type
-    }
-  )) });
-}
 
 // src/resolver.ts
 function normalizeStringArray(values) {
@@ -257,6 +243,20 @@ function resolveBasesEntries(basesData, allFiles, view, selfContext, linkUnivers
   const sorted = sortEntries(entries, view);
   const limited = view?.limit ? sorted.slice(0, view.limit) : sorted;
   return { entries: limited, total };
+}
+
+// src/components/ViewSelector.tsx
+function ViewSelector({ views, activeIndex }) {
+  if (views.length <= 1) return null;
+  return /* @__PURE__ */ u("div", { class: "bases-view-tabs", role: "tablist", children: views.map((view, index) => /* @__PURE__ */ u(
+    "button",
+    {
+      type: "button",
+      class: index === activeIndex ? "is-active" : "",
+      "data-view-index": index,
+      children: view.name ?? view.type
+    }
+  )) });
 }
 
 // src/i18n/locales/en-US.ts
@@ -1030,5 +1030,5 @@ var BasesBody_default = ((opts) => {
 });
 
 export { BasesBody_default, ViewSelector, i18n, registerBuiltinViews, resolveBasesEntries };
-//# sourceMappingURL=chunk-2CEZ6W7K.js.map
-//# sourceMappingURL=chunk-2CEZ6W7K.js.map
+//# sourceMappingURL=chunk-RHCM4RX3.js.map
+//# sourceMappingURL=chunk-RHCM4RX3.js.map

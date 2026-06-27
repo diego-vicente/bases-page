@@ -9,6 +9,11 @@ export { viewRegistry, registerCustomViews } from "./registry";
 // Compiler public API — for advanced use cases
 export { compile, evaluate, evaluateFilter, resolvePropertyValue } from "./compiler";
 
+// Resolver + parser — for hosts that render a base's resolved entries themselves
+// (e.g. an Atom-feed emitter that turns base views into feeds).
+export { resolveBasesEntries } from "./resolver";
+export { parseBasesData } from "./parser";
+
 // Types
 export type {
   BasesPageOptions,
