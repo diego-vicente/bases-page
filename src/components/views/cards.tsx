@@ -131,6 +131,11 @@ const CardsView: ViewRenderer = ({
                   {cardMetaColumns.map((column) => {
                     const value = resolveEntryPropertyValue(column, entry);
                     if (isEmptyValue(value)) return null;
+                    // Don't repeat the card title as a meta row (e.g. a `title`
+                    // column when the card heading already shows it).
+                    if (typeof value === "string" && value.trim() === entry.title?.trim()) {
+                      return null
+                    }
                     return (
                       <div class="bases-card-row">
                         <span class="bases-card-label">{getColumnLabel(column, basesData)}</span>

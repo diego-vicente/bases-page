@@ -644,6 +644,9 @@ var CardsView = ({
           /* @__PURE__ */ u("div", { class: "bases-card-meta", children: cardMetaColumns.map((column) => {
             const value = resolveEntryPropertyValue(column, entry);
             if (isEmptyValue(value)) return null;
+            if (typeof value === "string" && value.trim() === entry.title?.trim()) {
+              return null;
+            }
             return /* @__PURE__ */ u("div", { class: "bases-card-row", children: [
               /* @__PURE__ */ u("span", { class: "bases-card-label", children: getColumnLabel(column, basesData) }),
               /* @__PURE__ */ u("span", { class: "bases-card-value", children: renderCellValue(value, ctx) })
@@ -1030,5 +1033,5 @@ var BasesBody_default = ((opts) => {
 });
 
 export { BasesBody_default, ViewSelector, i18n, registerBuiltinViews, resolveBasesEntries };
-//# sourceMappingURL=chunk-RHCM4RX3.js.map
-//# sourceMappingURL=chunk-RHCM4RX3.js.map
+//# sourceMappingURL=chunk-MOWKNV6Y.js.map
+//# sourceMappingURL=chunk-MOWKNV6Y.js.map
