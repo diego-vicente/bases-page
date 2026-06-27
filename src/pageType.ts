@@ -90,17 +90,26 @@ export const BasesPage: QuartzPageTypePlugin<BasesPageOptions> = (opts) => ({
         },
       };
 
+      // A base page links to what it actually DISPLAYS — the union of its views'
+      // entries — not what the base-level filter alone matches. Otherwise a base
+      // whose narrowing happens per-view (e.g. a feed base whose base filter is a
+      // broad publish rule) would declare an outgoing link to nearly every note,
+      // flooding the graph + giving every note a spurious backlink to the base.
+      const linkViews = basesData.views?.length ? basesData.views : [undefined];
+      const linkSlugs = new Set<string>();
+      for (const linkView of linkViews) {
+        for (const entry of resolveBasesEntries(basesData, allFileData, linkView, basesSelfContext)
+          .entries) {
+          linkSlugs.add(entry.slug);
+        }
+      }
+
       virtualPages.push({
         slug,
         title,
         data: {
           frontmatter: { title, tags: [] },
-          links: resolveBasesEntries(
-            basesData,
-            allFileData,
-            undefined,
-            basesSelfContext,
-          ).entries.map((e) => e.slug as SimpleSlug),
+          links: Array.from(linkSlugs) as SimpleSlug[],
           basesData,
           basesOptions: opts,
           basesSelfContext,

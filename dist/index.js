@@ -18392,17 +18392,19 @@ var BasesPage = (opts) => ({
           ext
         }
       };
+      const linkViews = basesData.views?.length ? basesData.views : [void 0];
+      const linkSlugs = /* @__PURE__ */ new Set();
+      for (const linkView of linkViews) {
+        for (const entry of resolveBasesEntries(basesData, allFileData, linkView, basesSelfContext).entries) {
+          linkSlugs.add(entry.slug);
+        }
+      }
       virtualPages.push({
         slug,
         title,
         data: {
           frontmatter: { title, tags: [] },
-          links: resolveBasesEntries(
-            basesData,
-            allFileData,
-            void 0,
-            basesSelfContext
-          ).entries.map((e) => e.slug),
+          links: Array.from(linkSlugs),
           basesData,
           basesOptions: opts,
           basesSelfContext
