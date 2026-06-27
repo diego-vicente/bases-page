@@ -217,6 +217,12 @@ export interface BasesData {
   summaries?: Record<string, string>;
   /** View definitions — each entry defines one tab/view */
   views?: BasesView[];
+  /**
+   * Optional host extension (ignored by the renderer/Obsidian). When present, the
+   * base is treated as a feed SOURCE: no HTML index page is generated for it (the
+   * host serializes its views elsewhere, e.g. as Atom XML).
+   */
+  feed?: unknown;
 }
 
 // === Resolved Entry ===

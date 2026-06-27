@@ -58,6 +58,9 @@ export const BasesPage: QuartzPageTypePlugin<BasesPageOptions> = (opts) => ({
 
       const basesData = parseBasesData(raw);
       if (!basesData) continue;
+      // A `feed:`-marked base is a feed SOURCE, not a browsable index: the host
+      // serializes its views elsewhere (e.g. Atom XML). Don't generate an HTML page.
+      if (basesData.feed != null) continue;
 
       const fileWithoutExt = filePath.replace(/\.base$/, "");
       const baseName = fileWithoutExt.split("/").pop() ?? "Base";

@@ -18372,6 +18372,7 @@ var BasesPage = (opts) => ({
       }
       const basesData = parseBasesData(raw);
       if (!basesData) continue;
+      if (basesData.feed != null) continue;
       const fileWithoutExt = filePath.replace(/\.base$/, "");
       const baseName = fileWithoutExt.split("/").pop() ?? "Base";
       const lastSlash = filePath.lastIndexOf("/");
