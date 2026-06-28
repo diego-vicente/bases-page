@@ -12,7 +12,28 @@ function setActiveView(page, index) {
   });
 }
 
+// Star-rating cells render as "★★★½" etc. Number() can't parse them, so they'd
+// fall to localeCompare and sort nonsensically (½ U+00BD vs ★ U+2605 collate
+// unintuitively). Recognize them and sort by star value (★ = 2, ½ = 1). Returns
+// the numeric value, or null if the string isn't a star rating. Empty string → 0,
+// so an unrated row sorts below "½" (value 1).
+function starRatingValue(s) {
+  const t = String(s).trim();
+  if (t === "") return { value: 0, isStar: false };
+  if (/^[★½]+$/.test(t)) {
+    let value = 0;
+    for (const ch of t) value += ch === "★" ? 2 : 1;
+    return { value, isStar: true };
+  }
+  return null;
+}
+
 function compareValues(a, b) {
+  const sa = starRatingValue(a);
+  const sb = starRatingValue(b);
+  // Star comparison only when at least one side is an actual star string (so an
+  // empty cell pairs with a rating as 0, but two plain empties don't hijack it).
+  if (sa && sb && (sa.isStar || sb.isStar)) return sa.value - sb.value;
   const numA = Number(a);
   const numB = Number(b);
   if (!Number.isNaN(numA) && !Number.isNaN(numB)) return numA - numB;
